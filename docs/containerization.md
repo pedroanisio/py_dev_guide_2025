@@ -492,7 +492,6 @@ spec:
             path: /healthz
             port: 8000
           initialDelaySeconds: 5
-          periodSeconds: 10
 --- 
 # kubernetes/api-service-internal.yaml
 apiVersion: v1
