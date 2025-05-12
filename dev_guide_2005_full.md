@@ -20,6 +20,7 @@
 11. [Data Persistence & Storage](#11-data-persistence--storage)
 12. [AI & Data‑Science Practices](#12-ai--data-science-practices)
 13. [Edge‑Case Pitfalls & Gotchas](#13-edge-case-pitfalls--gotchas)
+14. [References](#14-references)
 
 ## Our Ethos
 
@@ -57,7 +58,7 @@
 
 #### Python
 
-* **PY-BLACK**  – Use the Black formatter for consistent code.
+* **PY-RUFF** – Use the Ruff formatter and linter for consistent code and quality checks.
 * **PY-CONFIG**  – Centralize tool configs in `pyproject.toml`.
 * **PY-COVERAGE**  – Measure test coverage with `coverage.py`.
 * **PY-DOCSTRING**  – Document all functions/classes per PEP 257.
@@ -138,9 +139,9 @@ from dotenv import load_dotenv; load_dotenv()
 ## 2. Code Style & Formatting
 
 * **Follow PEP 8:** Adhering to the official style guide significantly improves readability and consistency. Key aspects include naming conventions, code layout, imports organization, and comments.
-* **Use Automatic Formatters:** Tools like `black` enforce a consistent code style with minimal configuration. `isort` specifically sorts imports. Many developers use them as part of their workflow or CI/CD pipeline.
+* **Use Automatic Formatters:** Tools like `ruff` (which includes formatting capabilities) enforce a consistent code style with minimal configuration. `isort` specifically sorts imports, though Ruff can also handle this. Many developers use them as part of their workflow or CI/CD pipeline.
 * **Use Linters: Ruff** (lint + format + fix) as the default; add Flake8/Pylint only if you need a plugin Ruff doesn't yet cover.
-* **Exception‑to‑rule:** long dictionary literals that exceed 120 chars may keep single line *if* black keeps them readable; justify in PR.
+* **Exception‑to‑rule:** long dictionary literals that exceed 120 chars may keep single line *if* the formatter keeps them readable; justify in PR.
 * **Naming Conventions:**
 
   * `lower_case_with_underscores` for functions, methods, variables, and modules.
@@ -163,17 +164,14 @@ Add a Git hook that runs *Ruff* (lint/format/fix) and *isort* (import sorting) b
        hooks:
          - id: ruff
            args: [--fix]
-
-     - repo: https://github.com/psf/black
-       rev: 24.4.2
-       hooks:
-         - id: black
+         - id: ruff-format  # Added Ruff formatter hook
 
      - repo: https://github.com/pycqa/isort
        rev: 5.13.2
        hooks:
          - id: isort
-           args: ["--profile=black"]
+           # Note: Ruff can handle import sorting too, potentially removing the need for isort.
+           # args: ["--profile=black"] # Removed profile=black, adjust if using isort alongside ruff format
    ```
 
 2. **Install** the hooks once per clone:
@@ -1202,6 +1200,45 @@ with mlflow.start_run(run_name="clf_v1"):
 |              | Mac OS file‑sync slowness.                           | Mount volumes with `cached` or use *colima*.              |
 | **Gunicorn** | Worker timeout kills long streaming responses.       | Switch to `uvicorn --reload` in dev or tweak `--timeout`. |
 | **Celery**   | Lost tasks when broker restarts.                     | Enable `acks_late` + `worker_prefetch_multiplier=1`.      |
+
+---
+
+## 14. References
+
+### 14.1 Formatting and Linting
+
+[1] "The Ruff Formatter | Ruff", https://docs.astral.sh/ruff/formatter/, 2024
+[2] "The Ruff Formatter: An extremely fast, Black-compatible Python formatter", https://astral.sh/blog/the-ruff-formatter, 2023
+[3] "Black vs Ruff - What's the difference?", https://www.packetcoders.io/whats-the-difference-black-vs-ruff/, November 2, 2023
+[4] "FAQ | Ruff", https://docs.astral.sh/ruff/faq/, 2024
+
+### 14.2 Python Versioning
+
+[5] "Python Release Python 3.13.0", https://www.python.org/downloads/release/python-3130/, October 7, 2024
+[6] "PEP 719 – Python 3.13 Release Schedule", https://peps.python.org/pep-0719/, 2024
+[7] "What's New In Python 3.13", https://docs.python.org/3/whatsnew/3.13.html, October 7, 2024
+[8] "Python Documentation by Version", https://www.python.org/doc/versions/, 2025
+
+### 14.3 Docker Compose
+
+[9] "docker-compose.yml file naming convention", https://stackoverflow.com/questions/49718431/docker-compose-yml-file-naming-convention, 2018
+[10] "Why should you call the Docker Compose file 'compose.yaml' instead of 'docker-compose.yaml'?", https://stackoverflow.com/questions/76751032/why-should-you-call-the-docker-compose-file-compose-yaml-instead-of-docker-co, 2023
+[11] "Does it matter if the docker compose file is named docker-compose.yml or compose.yml?", https://stackoverflow.com/questions/74317741/does-it-matter-if-the-docker-compose-file-is-named-docker-compose-yml-or-compose, 2022
+[12] "How Compose works | Docker Docs", https://docs.docker.com/compose/intro/compose-application-model/, 2024
+[13] "Preferred compose file name is now 'compose.yaml' instead of 'docker-compose.yml'", https://github.com/microsoft/vscode-docker/issues/2618, 2022
+
+### 14.4 Database Connection and Worker Configuration
+
+[14] "Choosing DB pool_size for a Flask-SQLAlchemy app running on Gunicorn", https://stackoverflow.com/questions/60233495/choosing-db-pool-size-for-a-flask-sqlalchemy-app-running-on-gunicorn, 2020
+[15] "Design — Gunicorn 23.0.0 documentation", https://docs.gunicorn.org/en/stable/design.html, 2024
+[16] "Gunicorn Worker Types: How to choose the right one", https://dev.to/lsena/gunicorn-worker-types-how-to-choose-the-right-one-4n2c, September 30, 2021
+
+### 14.5 Secrets Management
+
+[17] "Dotenv Vault vs Doppler", https://www.dotenv.org/blog/2023/05/16/dotenv-vault-vs-doppler.html, May 16, 2023
+[18] "Why syncing .env files doesn't scale for secrets management", https://dev.to/doppler/why-syncing-env-files-doesnt-scale-for-secrets-management-5325, October 13, 2022
+[19] "How to Handle Secrets in Python", https://blog.gitguardian.com/how-to-handle-secrets-in-python/, January 30, 2025
+[20] "Secrets Management: Doppler or HashiCorp Vault?", https://thenewstack.io/secrets-management-doppler-or-hashicorp-vault/, January 31, 2022
 
 ---
 
