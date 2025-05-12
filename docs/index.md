@@ -2,7 +2,6 @@
 
 ## Sections
 - [Our Ethos](ethos.md)
-- [Table of Contents](table-of-contents.md)
 - [0. Security Practices (NEW)](security.md)
 - [1. Environment Management & Setup](environment.md)
 - [2. Code Style & Formatting](style.md)

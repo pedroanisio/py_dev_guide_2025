@@ -14,6 +14,7 @@
 ```python
 from dotenv import load_dotenv; load_dotenv()
 ```  
-> **Golden Rule:** If you touch credentials, crypto, or user data, open a **SECURITY.md** threat‑model PR.  
+!!! tip "Golden Rule"
+    If you touch credentials, crypto, or user data, open a **SECURITY.md** threat‑model PR.  
 ---  
 <a id="1-environment-management--setup"></a>
