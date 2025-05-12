@@ -372,11 +372,7 @@ def get_settings() -> Settings:
 
 | Tool                         | Config Snippet | Purpose |
 | ---------------------------- | -------------- | ------- |
-| **mypy**                     | \`\`\`toml     |         |
-| \[tool.mypy]                 |                |         |
-| plugins = \["pydantic.mypy"] |                |         |
-
-```| Static‑typing correctness, Pydantic plugin for generics & validators. |
+| **mypy**                     | \\\n```toml\n[tool.mypy]\nplugins = ["pydantic.mypy"]\n```\n\\\n                     | Static-typing correctness, Pydantic plugin for generics & validators. |
 | **ruff** | Rule set `B0`, `ARG`, `PTH` enabled by default. | Flags unused fields, wrong exception style, etc. |
 
 ### 6.5 FastAPI Integration Quick‑Ref
