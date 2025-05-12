@@ -1,12 +1,12 @@
 ## 12. AI & Data‑Science Practices  
 ### 12.1 Model Serving & Local LLMs  
-| Tool                                        | Use Case                                                                                          | Notes                                                                             |
-| ------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Ollama**                                  | Quickly spin up local LLMs (Mistral, Llama 3) for prototypes, private inference, or edge devices. | Mount `~/.ollama` as a volume in Docker; bind GPU with `--gpus all` if available. |
-| **vLLM**                                    | High‑throughput, GPU‑optimized serving for production.                                            | Pair with Triton or FastAPI adapter; use CUDA 12 base image.                      |
-| **HuggingFace `text-generation-inference`** | Multi‑GPU distributed serving of bigger models.                                                   | Requires Nvidia A100/H100; run behind Traefik.                                    |
-| **OpenAI-compatible API Servers**            | Drop-in replacement for OpenAI with local models                                                 | Use LiteLLM, vLLM with OpenAI-compatible mode, or FastAPI with pydantic validation    |
-| **Ray Serve**                               | Scalable multi-model deployments with resource management                                        | Use for complex pipelines with multiple models working together                    |
+| Tool                                        | Use Case                                                                                          | Notes                                                                             | Version |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
+| **Ollama**                                  | Quickly spin up local LLMs (Mistral, Llama 3) for prototypes, private inference, or edge devices. | Mount `~/.ollama` as a volume in Docker; bind GPU with `--gpus all` if available. | 0.1.27+ |
+| **vLLM**                                    | High‑throughput, GPU‑optimized serving for production.                                            | Pair with Triton or FastAPI adapter; use CUDA 12 base image.                      | 0.4.2+ |
+| **HuggingFace `text-generation-inference`** | Multi‑GPU distributed serving of bigger models.                                                   | Requires Nvidia A100/H100; run behind Traefik.                                    | 2.0.1+ |
+| **OpenAI-compatible API Servers**            | Drop-in replacement for OpenAI with local models                                                 | Use LiteLLM, vLLM with OpenAI-compatible mode, or FastAPI with pydantic validation    | LiteLLM 1.19.0+ |
+| **Ray Serve**                               | Scalable multi-model deployments with resource management                                        | Use for complex pipelines with multiple models working together                    | 2.9.0+ |
 
 Guidelines:  
 * **Tag images by model + version** (`ollama/llama3:70b‑q4_1`).
@@ -29,21 +29,21 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 # Expose API port
 EXPOSE 11434
 
-# Run with 4 workers and model preloading
-ENTRYPOINT ["ollama", "serve", "--workers=4", "--preload=llama3:70b-q4"]
+# Run with 4 workers and model from config (not hardcoded)
+ENTRYPOINT ["ollama", "serve", "--workers=4", "--config=/etc/ollama/models/llama3-config.yaml"]
 ```
 
 ### 12.2 NLP Stack (Python)  
-| Layer        | Preferred Lib                                      | Alternatives                              | Example                                                                 |
-| ------------ | -------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| Tokenization | `tokenizers` (HF)                                  | `spaCy` tokenizers                        | `from tokenizers import Tokenizer; t = Tokenizer.from_pretrained("gpt2")` |
-| Core NLP     | **spaCy v3** for POS/NER; `en_core_web_trf` model. | NLTK for teaching / quick regex grammars. | `import spacy; nlp = spacy.load("en_core_web_trf")`                        |
-| Embeddings   | `sentence-transformers`                            | `transformers` + manual mean‑pooling      | `from sentence_transformers import SentenceTransformer; model = SentenceTransformer("all-MiniLM-L6-v2")` |
-| Vector DB    | **Qdrant** (prod), **Chroma** (dev)                | pgvector extension                        | `from qdrant_client import QdrantClient; client = QdrantClient("localhost", port=6333)` |
-| RAG Framework| **LlamaIndex** or **LangChain**                     | Custom implementation                        | `from llama_index import VectorStoreIndex, SimpleDirectoryReader`            |
-| Eval & Bench | `langchain‑bench`, `lm‑eval‑harness`, `RAGAS`       | custom pytest harness                     | `from lm_eval import tasks, evaluator; results = evaluator.evaluate(model, tasks=["hellaswag"])` |
+| Layer        | Preferred Lib                                      | Alternatives                              | Example                                                                 | Version |
+| ------------ | -------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- | ------- |
+| Tokenization | `tokenizers` (HF)                                  | `spaCy` tokenizers                        | `from tokenizers import Tokenizer; t = Tokenizer.from_pretrained("gpt2")` | 0.15.0+ |
+| Core NLP     | **spaCy v3** for POS/NER; `en_core_web_trf` model. | NLTK for teaching / quick regex grammars. | `import spacy; nlp = spacy.load("en_core_web_trf")`                        | 3.7.2+ |
+| Embeddings   | `sentence-transformers`                            | `transformers` + manual mean‑pooling      | `from sentence_transformers import SentenceTransformer; model = SentenceTransformer("all-MiniLM-L6-v2")` | 2.5.0+ |
+| Vector DB    | **Qdrant** (prod), **Chroma** (dev)                | pgvector extension                        | `from qdrant_client import QdrantClient; client = QdrantClient("localhost", port=6333)` | Qdrant 1.7.3+ |
+| RAG Framework| **LlamaIndex** or **LangChain**                     | Custom implementation                        | `from llama_index import VectorStoreIndex, SimpleDirectoryReader`            | LlamaIndex 0.10.0+ |
+| Eval & Bench | `langchain‑bench`, `lm‑eval‑harness`, `RAGAS`       | custom pytest harness                     | `from lm_eval import tasks, evaluator; results = evaluator.evaluate(model, tasks=["hellaswag"])` | RAGAS 0.1.3+ |
 
-> **Rule:** New NLP pipelines must expose a **pure‑function endpoint** (`/v1/ner`), accept JSON, and return Pydantic models for entities.  
+> **Rule:** New NLP pipelines must expose a **pure‑function endpoint** (`/v1/ner`), accept JSON, and return Pydantic models for entities (using Pydantic 2.11.4+).  
 
 **Standard Vector Pipeline:**
 ```python
@@ -93,9 +93,9 @@ class VectorService:
 | Multimodal models (vision+text)| Mixed GPU (A10/A100) | Use model sharding and pipeline parallelism                            | Efficient prefetching, mixed precision                                           |
 
 **Performance Monitoring Tools:**
-- **PyTorch Profiler** - For detailed operation timing and memory tracking
-- **NVIDIA NSight** - For GPU kernel analysis
-- **Prometheus + Grafana** - For production monitoring of latency/throughput
+- **PyTorch Profiler** (v2.1.0+) - For detailed operation timing and memory tracking
+- **NVIDIA NSight** (2023.2+) - For GPU kernel analysis
+- **Prometheus + Grafana** (Prometheus 2.45.0+) - For production monitoring of latency/throughput
 
 **Example GPU Resource Allocation in Kubernetes:**
 ```yaml
@@ -106,7 +106,7 @@ metadata:
 spec:
   containers:
   - name: llm-service
-    image: your-registry/vllm-service:latest
+    image: your-registry/vllm-service:0.4.2
     resources:
       limits:
         nvidia.com/gpu: 1
@@ -122,14 +122,14 @@ spec:
 ```
 
 ### 12.4 Data Pipelines  
-| Stage          | Tooling                        | Comment                                                         | Example                                                                 |
-| -------------- | ------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Orchestration  | **Apache Airflow 2.9**         | DAGs stored in `pipelines/` folder; deploy via Docker Operator. | `from airflow import DAG; from airflow.operators.python import PythonOperator` |
-| Pythonic flows | **Prefect 2**                  | Great for local dev; run agent in K8s.                          | `from prefect import flow, task; @flow(name="etl")`                        |
-| Streaming ETL  | **Apache Beam** on Dataflow    | Use for terabyte‑scale transforms.                              | `import apache_beam as beam; with beam.Pipeline() as p:`                     |
-| Feature Store  | **Feast** with Postgres/Qdrant | Keep feature definitions versioned.                             | `from feast import FeatureStore; store = FeatureStore(repo_path=".")`         |
-| Data Validation| **Great Expectations**         | Validate data schemas and quality                                | `import great_expectations as ge; context = ge.get_context()`                 |
-| Data Version Control| **DVC**                        | Track data alongside code                                        | `dvc add data/training_set.csv`                                             |
+| Stage          | Tooling                        | Comment                                                         | Example                                                                 | Version |
+| -------------- | ------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------- | ------- |
+| Orchestration  | **Apache Airflow**            | DAGs stored in `pipelines/` folder; deploy via Docker Operator. | `from airflow import DAG; from airflow.operators.python import PythonOperator` | 2.9.0+ |
+| Pythonic flows | **Prefect**                    | Great for local dev; run agent in K8s.                          | `from prefect import flow, task; @flow(name="etl")`                        | 2.14.0+ |
+| Streaming ETL  | **Apache Beam** on Dataflow    | Use for terabyte‑scale transforms.                              | `import apache_beam as beam; with beam.Pipeline() as p:`                     | 2.52.0+ |
+| Feature Store  | **Feast** with Postgres/Qdrant | Keep feature definitions versioned.                             | `from feast import FeatureStore; store = FeatureStore(repo_path=".")`         | 0.32.0+ |
+| Data Validation| **Great Expectations**         | Validate data schemas and quality                                | `import great_expectations as ge; context = ge.get_context()`                 | 0.17.23+ |
+| Data Version Control| **DVC**                        | Track data alongside code                                        | `dvc add data/training_set.csv`                                             | 3.30.3+ |
 
 **Guidelines:**
 * DAG code must pass `ruff` and unit tests (`pytest pipelines/tests`).
@@ -139,6 +139,12 @@ spec:
 
 **Example Data Pipeline with Error Handling:**
 ```python
+"""
+HDR-DESCRIPTION: Embeddings training data pipeline
+HDR-FILENAME: embeddings_pipeline.py
+HDR-FILEPATH: pipelines/ml/embeddings_pipeline.py
+HDR-VERSION: 1.0.0
+"""
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.sensors.external import ExternalTaskSensor
@@ -189,21 +195,29 @@ extract_task = PythonOperator(
 ```
 
 ### 12.5 Experiment Tracking & Reproducibility  
-| Aspect | Tool | Mandatory Config | Integration |
+| Aspect | Tool | Mandatory Config | Integration | Version |
 | ------------------------------------------------------ | | 💾 Artifacts |
 **MLflow** | Track params + metrics; log models as `mlflow.pyfunc`. | | 📊
 Dashboards | **Weights & Biases** | Link run URL in PR description. | | 🧪 Data
 Versioning | **DVC** | Store datasets in S3 bucket; lockfile in Git. | | 📝 Model Cards
-| 🔍 A/B Testing | **Statsig** or **GrowthBook** | Feature flags with automatic statistical analysis | |
+| 🔍 A/B Testing | **Statsig** or **GrowthBook** | Feature flags with automatic statistical analysis | | 🔍 GrowthBook 2.0.0+ |
 
 > **Rule:** All experiments must have a unique run ID, parameter snapshot, and random seed. Without these, results are non‑reviewable.  
 Integrate MLflow client in FastAPI `/experiments` router for quick lookup.  
 
 **Standard Experiment Tracking Pattern:**
 ```python
+"""
+HDR-DESCRIPTION: Standardized experiment logging utilities
+HDR-FILENAME: experiment_utils.py
+HDR-FILEPATH: ml/utils/experiment_utils.py
+HDR-VERSION: 1.1.0
+"""
 import mlflow
 from mlflow.tracking import MlflowClient
 import numpy as np
+import torch
+import git
 import json
 from datetime import datetime
 from pathlib import Path
@@ -251,6 +265,12 @@ def log_experiment(config, model, data_version, metrics, artifacts=None):
 
 **FastAPI Experiment Endpoint:**
 ```python
+"""
+HDR-DESCRIPTION: Experiment tracking API endpoints
+HDR-FILENAME: experiment_router.py
+HDR-FILEPATH: api/routers/experiment_router.py
+HDR-VERSION: 1.0.0
+"""
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
@@ -318,13 +338,13 @@ mlflow.log_metric("accuracy", acc)
 ```  
 ### 12.8 Model Deployment & Serving
 
-| Component | Recommended Approach | Alternative | Key Metrics |
-|-----------|---------------------|-------------|------------|
-| Model Registry | MLflow Model Registry with versioning | HuggingFace Hub | Model size, latency profiles, memory usage |
-| Inference API | FastAPI with async endpoints | TorchServe, BentoML | p95/p99 latency, throughput, error rate |
-| Horizontal Scaling | K8s HPA based on CPU/GPU usage | Manual replica management | Queue depth, batch efficiency, resource utilization |
-| Model Monitoring | Prometheus + Grafana dashboards | Seldon Core metrics | Drift detection, accuracy regression |
-| Canary Deployments | Istio or ArgoRollouts | K8s native blue/green | Success rate delta, user impact metrics |
+| Component | Recommended Approach | Alternative | Key Metrics | Version |
+|-----------|---------------------|-------------|------------|---------|
+| Model Registry | MLflow Model Registry with versioning | HuggingFace Hub | Model size, latency profiles, memory usage | MLflow 2.10.0+ |
+| Inference API | FastAPI with async endpoints | TorchServe, BentoML | p95/p99 latency, throughput, error rate | FastAPI 0.110.0+ |
+| Horizontal Scaling | K8s HPA based on CPU/GPU usage | Manual replica management | Queue depth, batch efficiency, resource utilization | K8s 1.29+ |
+| Model Monitoring | Prometheus + Grafana dashboards | Seldon Core metrics | Drift detection, accuracy regression | Prometheus 2.45.0+ |
+| Canary Deployments | Istio or ArgoRollouts | K8s native blue/green | Success rate delta, user impact metrics | Istio 1.20.0+ |
 
 **Example Model Serving Architecture:**
 ```python

@@ -96,6 +96,7 @@ nav:
     - Modern Python Syntax: syntax.md
   - Architecture & Design:
     - Application Design: design.md
+    - Design Patterns: patterns.md
     - Testing: testing.md
     - Data Validation: validation.md
     - Logging & Observability: logging.md
@@ -109,7 +110,6 @@ nav:
     - Edge-Case Pitfalls: pitfalls.md
   - Resources:
     - References: references.md
-    - Glossary: glossary.md
 
 # Extra configurations
 extra_css:

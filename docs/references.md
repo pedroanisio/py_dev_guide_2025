@@ -9,6 +9,7 @@
 - [14.4 Database Connection and Worker Configuration](#144-database-connection-and-worker-configuration)
 - [14.5 Secrets Management](#145-secrets-management)
 - [14.6 Typing and Language Features](#146-typing-and-language-features)
+- [14.7 Standard Version References](#147-standard-version-references)
 
 ---
 
@@ -64,6 +65,58 @@
 | [21] | PEP 3129 – Class Decorators | [Python.org/PEPs](https://peps.python.org/pep-3129/) | May 1, 2007 | Specification for decorator syntax on classes |
 | [22] | PEP 695 – Type Parameter Syntax | [Python.org/PEPs](https://peps.python.org/pep-0695/) | June 15, 2022 | Introduction of first-class type parameter declarations |
 | [23] | PEP 696 – Type Defaults for Type Parameters | [Python.org/PEPs](https://peps.python.org/pep-0696/) | July 14, 2022 | Specification for default values in generic types |
+
+## 14.7 Standard Version References
+
+> **Important**: The following table standardizes version requirements across all documentation. All tools, libraries, and Docker images must reference these specific versions.
+
+### 14.7.1 Python and Core Libraries
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| Python | 3.12+ (3.13 preferred) | All new projects should use 3.13 where possible; legacy projects must be at least 3.12 |
+| Pydantic | 2.11.4+ | Required for all data models and validation |
+| FastAPI | 0.110.0+ | Used for all API development |
+| SQLAlchemy | 2.0.27+ | All database interactions |
+| uv | 0.1.21+ | Primary dependency and environment manager (uv pip, not pip directly) |
+| Ruff | 0.3.6+ | Standard linter and formatter |
+| pytest | 8.0.0+ | Testing framework |
+| coverage.py | 7.4.1+ | Coverage analysis tool with 70% minimum threshold |
+
+### 14.7.2 Docker Images
+
+| Image | Version | Purpose |
+|-------|---------|---------|
+| python | 3.13.0-slim | Base for application containers |
+| postgres | 16.2-alpine | Database |
+| redis | 7.2-alpine | Caching and message broker |
+| traefik | v2.11 | API gateway |
+| dpage/pgadmin4 | 8.3 | Database management (avoid :latest) |
+| ollama/ollama | 0.1.27 | LLM serving |
+| nvidia/cuda | 12.1.1-runtime | GPU compute base |
+
+### 14.7.3 AI/ML Tools
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| vLLM | 0.4.2+ | High-throughput LLM serving |
+| HuggingFace text-generation-inference | 2.0.1+ | Multi-GPU inference |
+| LiteLLM | 1.19.0+ | OpenAI-compatible API layer |
+| sentence-transformers | 2.5.0+ | Text embeddings |
+| Ray | 2.9.0+ | Distributed computing |
+| Qdrant | 1.7.3+ | Vector database |
+| MLflow | 2.10.0+ | Experiment tracking |
+
+### 14.7.4 Build and Deployment
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Docker | 26.0.0+ | Container runtime |
+| Docker Compose | 2.24.0+ | Local development orchestration |
+| Kubernetes | 1.29+ | Production orchestration |
+| Celery | 5.3.6+ | Task queue |
+| Gunicorn | 21.2.0+ | WSGI server |
+| Uvicorn | 0.27.0+ | ASGI server |
 
 ---
 
