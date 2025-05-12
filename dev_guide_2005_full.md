@@ -165,13 +165,6 @@ Add a Git hook that runs *Ruff* (lint/format/fix) and *isort* (import sorting) b
          - id: ruff
            args: [--fix]
          - id: ruff-format  # Added Ruff formatter hook
-
-     - repo: https://github.com/pycqa/isort
-       rev: 5.13.2
-       hooks:
-         - id: isort
-           # Note: Ruff can handle import sorting too, potentially removing the need for isort.
-           # args: ["--profile=black"] # Removed profile=black, adjust if using isort alongside ruff format
    ```
 
 2. **Install** the hooks once per clone:
@@ -234,7 +227,7 @@ Embed DRY/SOLID checks in **code reviews** and **CI lint rules**—e.g., flag du
 ### 4.2 CLI Skeleton (typer)
 
 ```python
-# cli.py  ★ hdr omitted for brevity
+# cli.py  ★ HDR required in actual project files
 import typer
 
 app = typer.Typer()
@@ -463,7 +456,7 @@ logger.info("User created", user_id=123)
 Output (one line):
 
 ```jsonl
-{"timestamp":"2025-05-12T13:37:49.123Z","level":"info","event":"User created","user_id":123}
+{"timestamp":"2025-05-12T13:37:49.123Z","level":"info","message":"User created","user_id":123}
 ```
 
 ### 7.4 Best Practices
@@ -898,7 +891,7 @@ Traefik `ingressRoute` references `internal-tls`; only corp network can resolve 
 ### Quick‑start Skeleton
 
 ```python
-# app/main.py ★ hdr omitted for brevity
+# app/main.py ★ HDR required in actual project files
 from fastapi import FastAPI, Depends, HTTPException, status
 from pydantic import BaseModel
 
