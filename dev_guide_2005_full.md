@@ -200,10 +200,27 @@ if (chunk := stream.read(1024)):
     process(chunk)  # more concise than two‑line read+check.
 ```
 
+* **New Type Parameter Syntax (PEP 695)**: For Python 3.12+, use the new syntax for defining generic functions and classes (e.g., `def func[T](...)`, `class MyClass[T]: ...`), and type aliases (`type AliasName[T] = ...`). This syntax is generally clearer and avoids explicit `TypeVar` definitions in simple cases.
 * **`collections.abc`** when defining custom collections.
 * **Timezone‑aware `datetime`** objects for unambiguous timestamps.
 
+## 3.1 Referenced Python Enhancement Proposals (PEPs)
+
+This guide references or incorporates principles from the following PEPs:
+
+*   **PEP 8:** Style Guide for Python Code (See §2 Code Style & Formatting)
+*   **PEP 20:** The Zen of Python ("Explicit is better than implicit", See §4 Application Design & Structure)
+*   **PEP 257:** Docstring Conventions (See Language‑Specific Rules)
+*   **PEP 3129:** Class Decorators (Extends decorator syntax to classes)
+*   **PEP 484:** Type Hints (See §3 Modern Python Syntax & Idioms, Language‑Specific Rules)
+*   **PEP 557:** Data Classes (See §3 Modern Python Syntax & Idioms)
+*   **PEP 695:** Type Parameter Syntax (Introduces `type` statements and `def func[T]`, `class Class[T]` syntax; See §3 Modern Python Syntax & Idioms)
+*   **PEP 696:** Type Defaults for Type Parameters (Allows defaults in type parameters, e.g., `type ListOrSet[T = int] = ...`; requires Python 3.13+)
+*   **PEP 719:** Python 3.13 Release Schedule (See §14 References)
+
 ---
+
+<a id="4-application-design--structure"></a>
 
 ## 4. Application Design & Structure
 
@@ -242,6 +259,131 @@ if __name__ == "__main__":
 ```
 
 Run: `python -m cli hello --name Pedro`.
+
+### 4.3 Recommended Project Structures
+
+A well-defined project structure is crucial for maintainability, collaboration, and scalability. While the specific layout can vary depending on the project type, consistency within a project is key. `<root>` refers to the directory created after cloning the git repository.
+
+**Common Requirements Across All Projects:**
+
+*   **`docs/`**: Contains human-readable documentation (e.g., using Sphinx, MkDocs). This includes architectural diagrams, usage guides, and `README.md` files for sub-components if needed.
+*   **`m2m/`**: Machine-to-Machine instructions. This folder houses documentation, prompts, schemas, or configuration specifically intended for AI/LLM agents involved in development or maintenance. For example, `m2m/README.md` might define high-level goals, API schemas for code generation, or data format specifications.
+*   **`pyproject.toml`**: Central configuration file for build system, dependencies (`uv`), linters (`ruff`), type checkers (`mypy`), etc.
+*   **`.gitignore`**: Specifies intentionally untracked files that Git should ignore.
+*   **`README.md`**: Top-level project description, setup instructions, and quick start guide.
+*   **`LICENSE`**: Project's license file.
+
+**Structure Examples:**
+
+**1. Web Applications (FastAPI / Flask / Django)**
+
+This structure emphasizes separation of application code (`src/`) from tests, scripts, and configuration.
+
+```text
+<root>/
+├── .git/
+├── .github/            # CI/CD workflows
+├── .vscode/            # Editor settings (optional)
+├── docs/               # Human documentation
+├── m2m/                # AI/LLM instructions
+├── scripts/            # Helper/utility scripts (deployment, data migration)
+├── src/
+│   └── <app_name>/     # Main application package
+│       ├── __init__.py
+│       ├── api/          # API endpoints/routers (FastAPI/Flask Blueprints)
+│       ├── core/         # Core logic, configuration loading (config.py)
+│       ├── crud/         # Data access logic (optional, depends on complexity)
+│       ├── models/       # Pydantic models / ORM models
+│       ├── schemas/      # Pydantic schemas for API validation
+│       ├── services/     # Business logic layer
+│       └── main.py       # Application entry point (FastAPI app creation)
+├── tests/              # All tests (unit, integration, e2e)
+│   ├── __init__.py
+│   ├── conftest.py     # Pytest fixtures
+│   ├── integration/
+│   └── unit/
+├── .env.example        # Example environment variables
+├── .gitignore
+├── .pre-commit-config.yaml
+├── compose.yml         # Docker Compose base config
+├── compose-dev.yml     # Docker Compose dev overrides
+├── Dockerfile
+├── LICENSE
+├── pyproject.toml
+├── README.md
+└── uv.lock             # Pinned dependencies
+```
+
+**2. CLI Tools (Typer / Click / Argparse)**
+
+Similar to web apps, often using a `src/` layout, but the internal structure reflects CLI commands and logic.
+
+```text
+<root>/
+├── .git/
+├── docs/
+├── m2m/
+├── src/
+│   └── <cli_tool_name>/
+│       ├── __init__.py
+│       ├── cli.py        # Main Typer/Click app definition
+│       ├── commands/     # Subcommands module
+│       │   ├── __init__.py
+│       │   └── subcommand1.py
+│       └── core/         # Core logic accessed by commands
+├── tests/
+├── .gitignore
+├── LICENSE
+├── pyproject.toml
+├── README.md
+└── uv.lock
+```
+
+**3. Modular Libraries / Packages**
+
+Designed to be installable (`pip install .`). The core logic resides within the package directory.
+
+```text
+<root>/
+├── .git/
+├── docs/
+├── examples/           # Usage examples (optional)
+├── m2m/
+├── src/
+│   └── <library_name>/ # The actual Python package
+│       ├── __init__.py
+│       ├── module1.py
+│       └── subpackage/
+│           ├── __init__.py
+│           └── feature.py
+├── tests/
+├── .gitignore
+├── LICENSE
+├── pyproject.toml      # Includes build backend (e.g., hatchling, setuptools)
+├── README.md
+└── uv.lock
+```
+
+**4. Standalone Scripts**
+
+For simpler projects consisting of one or a few scripts, a flat structure might suffice initially, but consider migrating to a `src/` layout if complexity grows.
+
+```text
+<root>/
+├── .git/
+├── docs/
+├── m2m/
+├── scripts/            # The main script(s)
+│   └── process_data.py
+├── tests/              # Tests for the script(s)
+├── .gitignore
+├── LICENSE
+├── pyproject.toml      # Dependencies for the scripts
+├── README.md
+└── uv.lock
+```
+
+Choose the structure that best fits the project's current needs and anticipated future complexity. Adhering to these patterns promotes consistency across projects.
 
 ---
 
@@ -1228,6 +1370,12 @@ with mlflow.start_run(run_name="clf_v1"):
 [18] "Why syncing .env files doesn't scale for secrets management", https://dev.to/doppler/why-syncing-env-files-doesnt-scale-for-secrets-management-5325, October 13, 2022
 [19] "How to Handle Secrets in Python", https://blog.gitguardian.com/how-to-handle-secrets-in-python/, January 30, 2025
 [20] "Secrets Management: Doppler or HashiCorp Vault?", https://thenewstack.io/secrets-management-doppler-or-hashicorp-vault/, January 31, 2022
+
+### 14.6 Typing and Language Features (NEW)
+
+[21] "PEP 3129 – Class Decorators", https://peps.python.org/pep-3129/, May 1, 2007
+[22] "PEP 695 – Type Parameter Syntax", https://peps.python.org/pep-0695/, June 15, 2022
+[23] "PEP 696 – Type Defaults for Type Parameters", https://peps.python.org/pep-0696/, July 14, 2022
 
 ---
 
