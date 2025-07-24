@@ -26,8 +26,10 @@ This guide references or incorporates principles from the following PEPs:
 *   **[PEP 557](https://peps.python.org/pep-0557/):** Data Classes (See §3 Modern Python Syntax & Idioms)
 *   **[PEP 695](https://peps.python.org/pep-0695/):** Type Parameter Syntax (Introduces `type` statements and `def func[T]`, `class Class[T]` syntax; See §3 Modern Python Syntax & Idioms)
 *   **[PEP 696](https://peps.python.org/pep-0696/):** Type Defaults for Type Parameters (Allows defaults in type parameters, e.g., `type ListOrSet[T = int] = ...`; requires Python 3.13+)
-*   **[PEP 719](https://peps.python.org/pep-0719/):** Python 3.13 Release Schedule (See §14 References)
+*   **[PEP 719](https://peps.python.org/pep-0719/):** Python 3.13 Release Schedule (See §15 References)
 *   **[PEP 3129](https://peps.python.org/pep-3129/):** Class Decorators (Extends decorator syntax to classes)
+
+> **Python Version Note:** This guide assumes Python 3.12+ with a preference for Python 3.13 when available. Features that require Python 3.13 specifically are clearly marked.
 
 ---
 

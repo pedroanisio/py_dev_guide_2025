@@ -7,7 +7,7 @@ Welcome to the *2025 Edition* of Python Development Best Practices! This guide p
 - [Our Ethos](./ethos.md)  
   Learn about the principles and philosophy guiding this guide.
 
-- [0. Security Practices (NEW)](./security.md) 🔒  
+- [0. Security Practices](./security.md) 🔒  
   Essential security practices to safeguard your Python applications.
 
 - [1. Environment Management & Setup](./environment.md) 🛠️  
@@ -28,7 +28,7 @@ Welcome to the *2025 Edition* of Python Development Best Practices! This guide p
 - [6. Testing](./testing.md) 🧪  
   Ensure code quality with effective testing strategies.
 
-- [7. Data Validation & Configuration — **Pydantic v2**](./validation.md) ✅  
+- [7. Data Validation & Configuration](./validation.md) ✅  
   Master data validation and configuration with Pydantic v2.
 
 - [8. Logging & Observability](./logging.md) 📊  
@@ -37,7 +37,7 @@ Welcome to the *2025 Edition* of Python Development Best Practices! This guide p
 - [9. Containerization & Docker Usage](./containerization.md) 🐳  
   Package and deploy applications with Docker.
 
-- [10. API Development — **FastAPI** (Mandatory)](./api.md) 🚀  
+- [10. API Development — FastAPI (Mandatory)](./api.md) 🚀  
   Build high-performance APIs with FastAPI, the modern standard.
 
 - [11. Background Tasks, Messaging & Concurrency](./tasks.md) ⚡  

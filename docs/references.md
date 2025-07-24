@@ -3,17 +3,17 @@
 > This document contains references and citations to support technical decisions and practices outlined in the development guide.
 
 ## 📚 Table of Contents
-- [14.1 Formatting and Linting](#141-formatting-and-linting)
-- [14.2 Python Versioning](#142-python-versioning)
-- [14.3 Docker Compose](#143-docker-compose)
-- [14.4 Database Connection and Worker Configuration](#144-database-connection-and-worker-configuration)
-- [14.5 Secrets Management](#145-secrets-management)
-- [14.6 Typing and Language Features](#146-typing-and-language-features)
-- [14.7 Standard Version References](#147-standard-version-references)
+- [15.1 Formatting and Linting](#151-formatting-and-linting)
+- [15.2 Python Versioning](#152-python-versioning)
+- [15.3 Docker Compose](#153-docker-compose)
+- [15.4 Database Connection and Worker Configuration](#154-database-connection-and-worker-configuration)
+- [15.5 Secrets Management](#155-secrets-management)
+- [15.6 Typing and Language Features](#156-typing-and-language-features)
+- [15.7 Standard Version References](#157-standard-version-references)
 
 ---
 
-## 14.1 Formatting and Linting
+## 15.1 Formatting and Linting
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -22,7 +22,7 @@
 | [3] | Black vs Ruff - What's the difference? | [PacketCoders](https://www.packetcoders.io/whats-the-difference-black-vs-ruff/) | November 2, 2023 | Comparative analysis of formatting tools |
 | [4] | FAQ \| Ruff | [Ruff Documentation](https://docs.astral.sh/ruff/faq/) | 2024 | Common questions about Ruff integration and usage |
 
-## 14.2 Python Versioning
+## 15.2 Python Versioning
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -31,7 +31,7 @@
 | [7] | What's New In Python 3.13 | [Python Documentation](https://docs.python.org/3/whatsnew/3.13.html) | October 7, 2024 | Comprehensive list of new features and improvements |
 | [8] | Python Documentation by Version | [Python.org](https://www.python.org/doc/versions/) | 2025 | Historical archive of all Python documentation versions |
 
-## 14.3 Docker Compose
+## 15.3 Docker Compose
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -41,7 +41,7 @@
 | [12] | How Compose works \| Docker Docs | [Docker Documentation](https://docs.docker.com/compose/intro/compose-application-model/) | 2024 | Official documentation on compose architecture |
 | [13] | Preferred compose file name is now 'compose.yaml' instead of 'docker-compose.yml' | [GitHub Issue](https://github.com/microsoft/vscode-docker/issues/2618) | 2022 | VS Code integration changes reflecting Docker's recommendations |
 
-## 14.4 Database Connection and Worker Configuration
+## 15.4 Database Connection and Worker Configuration
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -49,7 +49,7 @@
 | [15] | Design — Gunicorn 23.0.0 documentation | [Gunicorn Documentation](https://docs.gunicorn.org/en/stable/design.html) | 2024 | Architecture details on Gunicorn's worker model |
 | [16] | Gunicorn Worker Types: How to choose the right one | [Dev.to](https://dev.to/lsena/gunicorn-worker-types-how-to-choose-the-right-one-4n2c) | September 30, 2021 | Comparison of sync, async, and thread worker types |
 
-## 14.5 Secrets Management
+## 15.5 Secrets Management
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -58,7 +58,7 @@
 | [19] | How to Handle Secrets in Python | [GitGuardian Blog](https://blog.gitguardian.com/how-to-handle-secrets-in-python/) | January 30, 2025 | Best practices for Python-specific secrets handling |
 | [20] | Secrets Management: Doppler or HashiCorp Vault? | [The New Stack](https://thenewstack.io/secrets-management-doppler-or-hashicorp-vault/) | January 31, 2022 | Enterprise-focused comparison of solutions |
 
-## 14.6 Typing and Language Features
+## 15.6 Typing and Language Features
 
 | Reference | Title | Source | Date | Key Points |
 |-----------|-------|--------|------|------------|
@@ -66,11 +66,11 @@
 | [22] | PEP 695 – Type Parameter Syntax | [Python.org/PEPs](https://peps.python.org/pep-0695/) | June 15, 2022 | Introduction of first-class type parameter declarations |
 | [23] | PEP 696 – Type Defaults for Type Parameters | [Python.org/PEPs](https://peps.python.org/pep-0696/) | July 14, 2022 | Specification for default values in generic types |
 
-## 14.7 Standard Version References
+## 15.7 Standard Version References
 
 > **Important**: The following table standardizes version requirements across all documentation. All tools, libraries, and Docker images must reference these specific versions.
 
-### 14.7.1 Python and Core Libraries
+### 15.7.1 Python and Core Libraries
 
 | Component | Version | Notes |
 |-----------|---------|-------|
@@ -83,7 +83,7 @@
 | pytest | 8.0.0+ | Testing framework |
 | coverage.py | 7.4.1+ | Coverage analysis tool with 70% minimum threshold |
 
-### 14.7.2 Docker Images
+### 15.7.2 Docker Images
 
 | Image | Version | Purpose |
 |-------|---------|---------|
@@ -95,7 +95,7 @@
 | ollama/ollama | 0.1.27 | LLM serving |
 | nvidia/cuda | 12.1.1-runtime | GPU compute base |
 
-### 14.7.3 AI/ML Tools
+### 15.7.3 AI/ML Tools
 
 | Tool | Version | Purpose |
 |------|---------|---------|
@@ -107,7 +107,7 @@
 | Qdrant | 1.7.3+ | Vector database |
 | MLflow | 2.10.0+ | Experiment tracking |
 
-### 14.7.4 Build and Deployment
+### 15.7.4 Build and Deployment
 
 | Tool | Version | Purpose |
 |------|---------|---------|

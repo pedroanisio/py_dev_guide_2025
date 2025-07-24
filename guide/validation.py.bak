@@ -1,0 +1,1411 @@
+#!/usr/bin/env python3
+"""
+Data Validation & Configuration with Pydantic - Living Documentation
+
+This module demonstrates Pydantic v2+ best practices (§6 in our guide) through active
+examples that validate and explain principles simultaneously. It provides executable
+examples of model definition, validation, schema evolution, and integration patterns.
+
+Key concepts demonstrated:
+- Model definition and field validation
+- Immutable models and computed fields
+- Configuration management with Settings
+- Schema versions and evolution
+- Integration with FastAPI and databases
+
+Run this file directly to see a narrated demonstration of Pydantic in action.
+"""
+
+import json
+import os
+import re
+import sys
+from datetime import datetime, timedelta, timezone
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Union, Any, TypeVar, Literal, Annotated
+from uuid import UUID, uuid4
+import contextlib
+
+# Check Pydantic version
+try:
+    import pydantic
+    from pydantic import BaseModel, Field, field_validator, model_validator
+    from pydantic_core import PydanticCustomError
+    
+    # Try importing email validator
+    try:
+        from pydantic import EmailStr
+    except ImportError:
+        # If the email validator isn't available, use a fallback
+        class EmailStr(str): pass
+    
+    # Try importing Pydantic Settings
+    try:
+        from pydantic_settings import BaseSettings, SettingsConfigDict
+    except ImportError:
+        # If Settings isn't available, create a simple fallback
+        class BaseSettings(BaseModel): pass
+        class SettingsConfigDict(dict): pass
+    
+    version = pydantic.__version__
+    major_version = int(version.split('.')[0])
+    
+    if major_version < 2:
+        print(f"\n⚠️ WARNING: You are using Pydantic v{version}.")
+        print("This module demonstrates Pydantic v2.0.0+ features.")
+        print("Some examples may not work correctly.")
+        print("Please upgrade with: pip install -U pydantic>=2.0.0")
+    else:
+        print(f"\n✅ Using Pydantic v{version}")
+except ImportError:
+    print("\n❌ ERROR: Pydantic is not installed.")
+    print("Please install with: pip install pydantic>=2.0.0")
+    
+    # Create fallback classes for documentation purposes
+    class BaseModel: pass
+    def Field(*args, **kwargs): return None
+    class EmailStr(str): pass
+    def field_validator(*args, **kwargs): return lambda x: x
+    def model_validator(*args, **kwargs): return lambda x: x
+    PydanticCustomError = Exception
+
+
+class ModelType(Enum):
+    """Types of Pydantic models as described in §6"""
+    DOMAIN = "Domain Model"
+    DTO = "Data Transfer Object"
+    SETTINGS = "Settings"
+    REQUEST = "Request Model"
+    RESPONSE = "Response Model"
+    ERROR = "Error Model"
+
+
+class PydanticModel:
+    """Represents a Pydantic model definition with metadata"""
+    def __init__(
+        self, 
+        name: str,
+        model_type: ModelType,
+        description: str,
+        code: str,
+        related_models: List[str] = None,
+        immutable: bool = True
+    ):
+        self.name = name
+        self.model_type = model_type
+        self.description = description
+        self.code = code
+        self.related_models = related_models or []
+        self.immutable = immutable
+
+
+class CorePrinciple:
+    """Core principle for data validation"""
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        example: Optional[str] = None
+    ):
+        self.name = name
+        self.description = description
+        self.example = example
+
+
+class ValidationPattern(Enum):
+    """Common validation patterns"""
+    FIELD_VALIDATOR = "Field Validator"
+    MODEL_VALIDATOR = "Model Validator"
+    ROOT_VALIDATOR = "Root Validator (v1 compatibility)"
+    CONSTRAINT = "Field Constraint"
+    TYPE_VALIDATION = "Type Validation"
+
+
+class DataValidationAndConfiguration:
+    """
+    Data Validation & Configuration
+    
+    This class demonstrates best practices for using Pydantic for data validation
+    and configuration management in Python applications. It follows the principles
+    outlined in §6 of our best practices guide.
+    """
+    
+    def __init__(self):
+        """Initialize with best practices from §6 of our guide."""
+        self.name = "Data Validation & Configuration"
+        self.required_package = "pydantic"
+        self.min_version = "2.0"
+        
+        # Core principles from §6.1
+        self.core_principles = [
+            CorePrinciple(
+                "Model Everything", 
+                "Replace raw dict or typing.TypedDict at function/method boundaries and for internal state with Pydantic BaseModel subclasses.",
+                """
+# Instead of this:
+def process_user(user_data: dict) -> dict:
+    # Validation mixed with business logic
+    if "email" not in user_data:
+        raise ValueError("Email is required")
+    # ...
+    return {"id": 123, **user_data}
+
+# Use this:
+class UserInput(BaseModel):
+    email: str
+    name: str
+    age: int | None = None
+
+class UserOutput(BaseModel):
+    id: int
+    email: str
+    name: str
+    age: int | None = None
+
+def process_user(user: UserInput) -> UserOutput:
+    # Validation already handled by Pydantic
+    # Business logic only
+    return UserOutput(id=123, **user.model_dump())
+"""
+            ),
+            CorePrinciple(
+                "Configuration via Settings",
+                "Centralize runtime configuration (environment variables, .env files, secrets) using a single Settings class inheriting from Pydantic's BaseSettings.",
+                """
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False
+    )
+    
+    debug: bool = False
+    database_url: str
+    api_key: str
+"""
+            ),
+            CorePrinciple(
+                "Immutability by Default",
+                "Configure models as immutable (model_config = {'frozen': True}) unless there's a compelling reason for instances to be mutable.",
+                """
+class User(BaseModel):
+    model_config = {"frozen": True}
+    
+    id: int
+    name: str
+    
+# This will raise an error:
+# user = User(id=1, name="Alice")
+# user.name = "Bob"  # Error: instance is frozen
+"""
+            ),
+            CorePrinciple(
+                "Validate Early",
+                "Construct Pydantic models as the first step when ingesting external data (e.g., from HTTP requests, CLI arguments, database rows).",
+                """
+def api_endpoint(request_data: dict):
+    # Validate immediately at the boundary
+    try:
+        user_request = UserCreate(**request_data)
+    except ValidationError as e:
+        return {"error": e.errors()}
+    
+    # Now work with validated data
+    process_user(user_request)
+"""
+            ),
+            CorePrinciple(
+                "Controlled Serialization",
+                "Use Pydantic's built-in methods like .model_dump() and .model_dump_json() for generating outbound data payloads.",
+                """
+def get_user_response(user: User) -> dict:
+    # Instead of manually creating a dict
+    # return {"id": user.id, "name": user.name}
+    
+    # Use controlled serialization
+    return user.model_dump(exclude={"password_hash"})
+"""
+            )
+        ]
+        
+        # Example models
+        self.example_models = [
+            PydanticModel(
+                name="User",
+                model_type=ModelType.DOMAIN,
+                description="Basic domain model with field validation",
+                code="""
+from pydantic import BaseModel, Field, field_validator
+from pydantic_core import PydanticCustomError
+
+class User(BaseModel):
+    model_config = {"frozen": True} # Immutable by default
+
+    id: int = Field(..., gt=0, description="Unique user identifier")
+    email: str
+    is_active: bool = True
+
+    @field_validator("email")
+    @classmethod
+    def email_must_contain_at_symbol(cls, v: str) -> str:
+        if "@" not in v:
+            # Use PydanticCustomError for specific error types
+            raise PydanticCustomError(
+                "value_error",
+                "Email address must contain an '@' symbol",
+                {"value": v}
+            )
+        return v.lower() # Example: Normalize email to lowercase
+""",
+                related_models=["Address", "UserProfile"]
+            ),
+            PydanticModel(
+                name="Settings",
+                model_type=ModelType.SETTINGS,
+                description="Application settings with environment variable loading",
+                code="""
+import os
+from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, PostgresDsn
+
+class Settings(BaseSettings):
+    # Define application settings, reading from environment variables
+    model_config = SettingsConfigDict(
+        env_file=".env",         # Load .env file if present
+        case_sensitive=False,    # Environment variable names are case-insensitive
+        extra="ignore",           # Ignore extra fields from environment
+    )
+
+    debug: bool = Field(default=False, description="Enable debug mode")
+    # Example: Using a specific Pydantic type for validation
+    database_url: PostgresDsn = Field(..., description="DSN for the primary database")
+    # Example: Optional setting with default
+    redis_url: str | None = Field(default=None, description="URL for Redis cache (optional)")
+
+# Use lru_cache for efficient access to the settings singleton
+@lru_cache()
+def get_settings() -> Settings:
+    """Returns the application settings instance."""
+    # Settings automatically reads from environment variables / .env file on instantiation
+    return Settings()
+""",
+                related_models=["Address", "UserProfile"]
+            ),
+            PydanticModel(
+                name="Address",
+                model_type=ModelType.DOMAIN,
+                description="Nested model for use in relationships",
+                code="""
+from pydantic import BaseModel, Field
+
+class Address(BaseModel):
+    model_config = {"frozen": True}
+    
+    street: str
+    city: str
+    country: str
+    postal_code: str
+    is_primary: bool = False
+""",
+                related_models=["User"]
+            ),
+            PydanticModel(
+                name="UserProfile",
+                model_type=ModelType.DOMAIN,
+                description="Related model with default values",
+                code="""
+from pydantic import BaseModel, Field
+from typing import Optional, Dict
+
+class UserProfile(BaseModel):
+    bio: Optional[str] = None
+    avatar_url: Optional[str] = None
+    preferences: Dict[str, str] = Field(default_factory=dict)
+""",
+                related_models=["User"]
+            ),
+            PydanticModel(
+                name="ErrorDetail",
+                model_type=ModelType.ERROR,
+                description="Error detail for API responses",
+                code="""
+from pydantic import BaseModel
+from typing import List
+
+class ErrorDetail(BaseModel):
+    loc: List[str]  # Location of the error
+    msg: str        # Error message
+    type: str       # Error type
+""",
+                related_models=["ErrorResponse"]
+            ),
+            PydanticModel(
+                name="ErrorResponse",
+                model_type=ModelType.RESPONSE,
+                description="Standardized error response for APIs",
+                code="""
+from pydantic import BaseModel
+from typing import List
+from .schemas import ErrorDetail
+
+class ErrorResponse(BaseModel):
+    detail: List[ErrorDetail]
+""",
+                related_models=["ErrorDetail"]
+            )
+        ]
+    
+    def demonstrate_basic_models(self):
+        """
+        Demonstrate the definition and usage of basic Pydantic models.
+        
+        Best practices shown:
+        - Type annotations for automatic validation
+        - Field constraints for data integrity
+        - Custom validators for complex rules
+        - Immutable models to prevent accidental state changes
+        """
+        print("\n" + "=" * 80)
+        print("📘 BASIC MODEL DEFINITION & VALIDATION")
+        print("=" * 80)
+        print("✨ Implementing Core Rule #1: 'Model Everything'")
+        
+        # ANTI-PATTERN: Dictionary approach
+        print("\n❌ ANTI-PATTERN: Dictionary approach with manual validation")
+        print("""
+def process_user(user_data: dict) -> dict:
+    # Manual validation mixed with business logic - VERBOSE AND ERROR-PRONE
+    if "id" not in user_data:
+        raise ValueError("ID is required")
+    if not isinstance(user_data["id"], int) or user_data["id"] <= 0:
+        raise ValueError("ID must be a positive integer")
+    if "email" not in user_data:
+        raise ValueError("Email is required")
+    if "@" not in user_data["email"]:
+        raise ValueError("Invalid email format")
+    # And so on for every field...
+    
+    # Business logic
+    # ...
+    
+    return {"success": True, **user_data}
+""")
+        
+        # GOOD PATTERN: Pydantic model implementation
+        print("\n✅ RECOMMENDED PATTERN: Pydantic model with declarative validation")
+        
+        # Define a user model
+        try:
+            class User(BaseModel):
+                """User model with validation."""
+                # Implement Core Rule #3: Immutability by Default
+                model_config = {"frozen": True}
+                
+                id: int = Field(..., gt=0, description="Unique user identifier")
+                email: str
+                is_active: bool = True
+                created_at: datetime = Field(default_factory=datetime.utcnow)
+                
+                # Custom validator for email format
+                @field_validator("email")
+                @classmethod
+                def validate_email(cls, value: str) -> str:
+                    if "@" not in value:
+                        raise ValueError("Email address must contain an '@' symbol")
+                    return value.lower()  # Normalize email to lowercase
+                
+            print("""
+class User(BaseModel):
+    \"\"\"User model with validation.\"\"\"
+    # Implement Core Rule #3: Immutability by Default
+    model_config = {"frozen": True}
+    
+    id: int = Field(..., gt=0, description="Unique user identifier")
+    email: str
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    
+    # Custom validator for email format
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        if "@" not in value:
+            raise ValueError("Email address must contain an '@' symbol")
+        return value.lower() # Example: Normalize email to lowercase
+            """)
+            
+            print("\n🔍 Now watch the model in action:")
+            
+            # Demonstrate validation with valid data
+            print("\n1️⃣ Creating a valid user:")
+            valid_user = User(id=1, email="user@example.com")
+            print(f"  ✓ Valid user created: {valid_user}")
+            
+            # Demonstrate validation with invalid data
+            print("\n2️⃣ Attempting to create a user with invalid ID:")
+            try:
+                invalid_id_user = User(id=-1, email="user@example.com")
+                print("  ✗ This should have failed but didn't!")
+            except Exception as e:
+                print(f"  ✓ Validation caught the error: {str(e)}")
+            
+            print("\n3️⃣ Attempting to create a user with invalid email:")
+            try:
+                invalid_email_user = User(id=1, email="invalid-email")
+                print("  ✗ This should have failed but didn't!")
+            except Exception as e:
+                print(f"  ✓ Validation caught the error: {str(e)}")
+            
+            # Demonstrate immutability
+            print("\n4️⃣ Demonstrating immutability (Core Rule #3):")
+            try:
+                valid_user.email = "new@example.com"
+                print("  ✗ This should have failed but didn't!")
+            except Exception as e:
+                print(f"  ✓ Attempted modification blocked: {type(e).__name__}")
+            
+            # Demonstrate serialization
+            print("\n5️⃣ Demonstrating controlled serialization (Core Rule #5):")
+            user_dict = valid_user.model_dump()
+            user_json = valid_user.model_dump_json()
+            print(f"  ✓ model_dump() returns: {json.dumps(user_dict, default=str)}")
+            print(f"  ✓ model_dump_json() returns: {user_json}")
+            
+            print("\n📝 With Pydantic models:")
+            print("  • Validation is separated from business logic")
+            print("  • Type checking is automatic")
+            print("  • Custom validation rules are declarative")
+            print("  • Models can be immutable to prevent bugs")
+            print("  • Serialization is standardized")
+            
+        except Exception as e:
+            print(f"\n❌ Error demonstrating models: {e}")
+        
+        return User if 'User' in locals() else None
+    
+    def demonstrate_config_management(self):
+        """
+        Demonstrate configuration management using Pydantic Settings.
+        
+        Best practices shown:
+        - Centralized configuration with environment variables
+        - Validation of configuration values
+        - Type conversion and defaults
+        - .env file support
+        """
+        print("\n" + "=" * 80)
+        print("⚙️ CONFIGURATION MANAGEMENT WITH SETTINGS")
+        print("=" * 80)
+        print("✨ Implementing Core Rule #2: 'Configuration via Settings'")
+        
+        # Create a temporary .env file for demonstration
+        env_content = """
+        # Application settings
+        DEBUG=true
+        API_KEY=demo-api-key
+        DATABASE_URL=postgresql://user:password@localhost:5432/demo
+        LOG_LEVEL=INFO
+        MAX_CONNECTIONS=10
+        ALLOWED_HOSTS=localhost,127.0.0.1
+        """
+        
+        env_file = Path(".env.demo")
+        with open(env_file, "w") as f:
+            f.write(env_content)
+        
+        print(f"\n📝 Created a demo .env file with content:")
+        for line in env_content.strip().split("\n"):
+            if line.strip() and not line.strip().startswith("#"):
+                print(f"  {line.strip()}")
+        
+        # Define a settings class
+        try:
+            # Define log level enum
+            class LogLevel(str, Enum):
+                """Valid log levels."""
+                DEBUG = "DEBUG"
+                INFO = "INFO"
+                WARNING = "WARNING"
+                ERROR = "ERROR"
+                CRITICAL = "CRITICAL"
+            
+            # Define settings class
+            class Settings(BaseSettings):
+                """Application settings with validation."""
+                model_config = SettingsConfigDict(
+                    env_file=".env.demo",      # Load from custom .env file
+                    case_sensitive=False,      # Environment variables are case-insensitive
+                    extra="ignore",            # Ignore extra fields from environment
+                    env_file_encoding="utf-8", # Specify file encoding
+                )
+                
+                # Basic settings with validation
+                debug: bool = Field(default=False, description="Enable debug mode")
+                api_key: str = Field(..., description="API key for external services")
+                log_level: LogLevel = Field(default=LogLevel.INFO, description="Application log level")
+                
+                # Database connection using PostgresDsn type if available
+                database_url: str = Field(..., description="Database connection string")
+                
+                # Numeric value with constraints
+                max_connections: int = Field(
+                    default=5, 
+                    ge=1, 
+                    le=100, 
+                    description="Maximum number of database connections"
+                )
+                
+                # List from comma-separated string
+                allowed_hosts: List[str] = Field(
+                    default_factory=lambda: ["localhost"],
+                    description="List of allowed hosts"
+                )
+                
+                # Computed property based on other settings
+                @property
+                def is_production(self) -> bool:
+                    """Determine if this is a production environment."""
+                    return not self.debug and "localhost" not in self.allowed_hosts
+            
+            # Use lru_cache for efficient access to the settings
+            from functools import lru_cache
+            
+            @lru_cache()
+            def get_settings() -> Settings:
+                """Returns cached application settings."""
+                return Settings()
+            
+            print("\n📄 Settings class implementation:")
+            print("""
+class Settings(BaseSettings):
+    \"\"\"Application settings with validation.\"\"\"
+    model_config = SettingsConfigDict(
+        env_file=".env.demo",      # Load from custom .env file
+        case_sensitive=False,      # Environment variables are case-insensitive
+        extra="ignore",            # Ignore extra fields from environment
+        env_file_encoding="utf-8", # Specify file encoding
+    )
+    
+    # Basic settings with validation
+    debug: bool = Field(default=False, description="Enable debug mode")
+    api_key: str = Field(..., description="API key for external services")
+    log_level: LogLevel = Field(default=LogLevel.INFO, description="Application log level")
+    
+    # Database connection
+    database_url: str = Field(..., description="Database connection string")
+    
+    # Numeric value with constraints
+    max_connections: int = Field(
+        default=5, 
+        ge=1, 
+        le=100, 
+        description="Maximum number of database connections"
+    )
+    
+    # List from comma-separated string
+    allowed_hosts: List[str] = Field(
+        default_factory=lambda: ["localhost"],
+        description="List of allowed hosts"
+    )
+    
+    # Computed property based on other settings
+    @property
+    def is_production(self) -> bool:
+        \"\"\"Determine if this is a production environment.\"\"\"
+        return not self.debug and "localhost" not in self.allowed_hosts
+
+# Use lru_cache for efficient access to the settings singleton
+@lru_cache()
+def get_settings() -> Settings:
+    \"\"\"Returns cached application settings.\"\"\"
+    return Settings()
+""")
+            
+            print("\n🔍 Loading settings from the environment:")
+            try:
+                settings = get_settings()
+                print("  ✓ Settings loaded successfully")
+                print(f"  • Debug mode: {settings.debug}")
+                print(f"  • API key: {settings.api_key}")
+                print(f"  • Database URL: {settings.database_url}")
+                print(f"  • Log level: {settings.log_level}")
+                print(f"  • Max connections: {settings.max_connections}")
+                print(f"  • Allowed hosts: {settings.allowed_hosts}")
+                print(f"  • Is production: {settings.is_production}")
+            except Exception as e:
+                print(f"  ✗ Error loading settings: {type(e).__name__}: {str(e)}")
+            
+            print("\n📝 Benefits of Pydantic Settings:")
+            print("  • Automatic loading from environment variables")
+            print("  • Support for .env files")
+            print("  • Type conversion (strings to booleans, integers, lists)")
+            print("  • Validation of required fields and constraints")
+            print("  • Environment-specific configuration")
+            
+        except Exception as e:
+            print(f"\n❌ Error demonstrating settings: {e}")
+        
+        # Clean up the demo .env file
+        env_file.unlink()
+        print(f"\n🧹 Removed demo .env file")
+        
+        return Settings if 'Settings' in locals() else None
+    
+    def demonstrate_nested_models(self):
+        """
+        Demonstrate nested models and relationships.
+        
+        Best practices shown:
+        - Model composition
+        - List fields with validators
+        - Default factories for complex defaults
+        - Cross-field validation
+        - Computed fields
+        """
+        print("\n" + "=" * 80)
+        print("🧩 NESTED MODELS & RELATIONSHIPS")
+        print("=" * 80)
+        print("✨ Combining multiple Pydantic models for complex domains")
+        
+        try:
+            # Define nested models
+            class Address(BaseModel):
+                """Physical address model."""
+                model_config = {"frozen": True}
+                
+                street: str
+                city: str
+                state: Optional[str] = None
+                country: str
+                postal_code: str
+                is_primary: bool = False
+            
+            class Contact(BaseModel):
+                """Contact information model."""
+                email: str
+                phone: Optional[str] = None
+                
+                @field_validator("email")
+                @classmethod
+                def validate_email(cls, value: str) -> str:
+                    if "@" not in value:
+                        raise ValueError("Email must contain @ symbol")
+                    return value.lower()
+                
+                @field_validator("phone")
+                @classmethod
+                def validate_phone(cls, value: Optional[str]) -> Optional[str]:
+                    if value is None:
+                        return None
+                        
+                    # Remove common formatting characters
+                    digits_only = re.sub(r'[^0-9]', '', value)
+                    if len(digits_only) < 10:
+                        raise ValueError("Phone number must have at least 10 digits")
+                    return digits_only
+            
+            class UserProfile(BaseModel):
+                """Extended user profile information."""
+                bio: Optional[str] = None
+                avatar_url: Optional[str] = None
+                preferences: Dict[str, str] = Field(default_factory=dict)
+            
+            class User(BaseModel):
+                """User model with nested components."""
+                id: UUID = Field(default_factory=uuid4)
+                username: str
+                created_at: datetime = Field(default_factory=datetime.utcnow)
+                contact: Contact
+                profile: UserProfile = Field(default_factory=UserProfile)
+                addresses: List[Address] = Field(default_factory=list)
+                
+                @model_validator(mode='after')
+                def ensure_primary_address(self) -> 'User':
+                    """Ensure there is exactly one primary address if addresses exist."""
+                    if not self.addresses:
+                        return self
+                        
+                    primary_addresses = [addr for addr in self.addresses if addr.is_primary]
+                    if not primary_addresses:
+                        # Make the first address primary if none are marked
+                        addresses = list(self.addresses)  # Create a mutable copy
+                        addresses[0] = Address(**{**addresses[0].model_dump(), "is_primary": True})
+                        object.__setattr__(self, 'addresses', addresses)
+                    elif len(primary_addresses) > 1:
+                        raise ValueError("Only one address can be marked as primary")
+                    
+                    return self
+                
+                @property
+                def primary_address(self) -> Optional[Address]:
+                    """Return the primary address if it exists."""
+                    for addr in self.addresses:
+                        if addr.is_primary:
+                            return addr
+                    return None
+            
+            print("\n📄 Model hierarchy diagram:")
+            print("""
+User
+├── id: UUID (auto-generated)
+├── username: str
+├── created_at: datetime (auto-generated)
+├── contact: Contact
+│   ├── email: str (validated)
+│   └── phone: Optional[str] (validated)
+├── profile: UserProfile
+│   ├── bio: Optional[str]
+│   ├── avatar_url: Optional[str]
+│   └── preferences: Dict[str, str]
+└── addresses: List[Address]
+    ├── street: str
+    ├── city: str
+    ├── state: Optional[str]
+    ├── country: str
+    ├── postal_code: str
+    └── is_primary: bool""")
+            
+            print("\n🔍 Creating a user with nested models:")
+            
+            user = User(
+                username="johndoe",
+                contact=Contact(
+                    email="john.doe@example.com",
+                    phone="(555) 123-4567"
+                ),
+                addresses=[
+                    Address(
+                        street="123 Main St",
+                        city="Anytown",
+                        state="CA",
+                        country="US",
+                        postal_code="12345",
+                        is_primary=True
+                    ),
+                    Address(
+                        street="456 Market St",
+                        city="Othertown",
+                        state="NY",
+                        country="US",
+                        postal_code="67890"
+                    )
+                ]
+            )
+            
+            print("  ✓ User created successfully")
+            print(f"  • Username: {user.username}")
+            print(f"  • Contact email: {user.contact.email}")
+            print(f"  • Normalized phone: {user.contact.phone}")
+            print(f"  • Number of addresses: {len(user.addresses)}")
+            print(f"  • Primary address: {user.primary_address.city}, {user.primary_address.state}" if user.primary_address else "None")
+            
+            # Demonstrate model validation
+            print("\n🔍 Demonstrating cross-field validation:")
+            
+            print("\n1️⃣ Creating a user with multiple primary addresses (should fail):")
+            try:
+                invalid_user = User(
+                    username="janedoe",
+                    contact=Contact(email="jane.doe@example.com"),
+                    addresses=[
+                        Address(
+                            street="123 Main St",
+                            city="Anytown",
+                            country="US",
+                            postal_code="12345",
+                            is_primary=True
+                        ),
+                        Address(
+                            street="456 Market St",
+                            city="Othertown",
+                            country="US",
+                            postal_code="67890",
+                            is_primary=True  # Second primary address - should fail
+                        )
+                    ]
+                )
+                print("  ✗ This should have failed but didn't!")
+            except Exception as e:
+                print(f"  ✓ Validation caught the error: {type(e).__name__}: {str(e)}")
+            
+            print("\n2️⃣ Creating a user with no primary address (first should be marked automatically):")
+            user2 = User(
+                username="samsmith",
+                contact=Contact(email="sam.smith@example.com"),
+                addresses=[
+                    Address(
+                        street="123 Main St",
+                        city="Anytown",
+                        country="US",
+                        postal_code="12345",
+                        is_primary=False
+                    ),
+                    Address(
+                        street="456 Market St",
+                        city="Othertown",
+                        country="US",
+                        postal_code="67890",
+                        is_primary=False
+                    )
+                ]
+            )
+            
+            print("  ✓ User created successfully")
+            print(f"  • First address is now primary: {user2.addresses[0].is_primary}")
+            print(f"  • Second address is still not primary: {user2.addresses[1].is_primary}")
+            print(f"  • Primary address: {user2.primary_address.city}, {user2.primary_address.country}" if user2.primary_address else "None")
+            
+            print("\n📝 Benefits of nested models:")
+            print("  • Complex domain modeling with clear organization")
+            print("  • Reuse of common components (Address, Contact)")
+            print("  • Cross-field validations between nested objects")
+            print("  • Default factories for optional components")
+            print("  • Computed properties based on nested data")
+        
+        except Exception as e:
+            print(f"\n❌ Error demonstrating nested models: {e}")
+        
+        return {"User": User, "Address": Address, "Contact": Contact, "UserProfile": UserProfile} if all(m in locals() for m in ["User", "Address", "Contact", "UserProfile"]) else None
+    
+    def demonstrate_model_versioning(self):
+        """
+        Demonstrate model evolution and versioning strategies.
+        
+        Best practices shown:
+        - Model versioning for backward compatibility
+        - Creating new model versions while maintaining old ones
+        - Migration between model versions
+        """
+        print("\n" + "=" * 80)
+        print("🔄 MODEL EVOLUTION & VERSIONING")
+        print("=" * 80)
+        print("✨ Strategy for maintaining backward compatibility")
+        
+        try:
+            # Define a versioned model hierarchy
+            class ProductBase(BaseModel):
+                """Base product fields common to all versions."""
+                id: int
+                name: str
+            
+            class ProductV1(ProductBase):
+                """Version 1 of the Product model."""
+                model_version: Literal["v1"] = "v1"
+                price: float
+                description: Optional[str] = None
+                
+                model_config = {"extra": "forbid"}  # Prevent extra fields
+            
+            class ProductV2(ProductBase):
+                """Version 2 of the Product model with extended fields."""
+                model_version: Literal["v2"] = "v2"
+                price: Dict[str, float]  # Now a dictionary of currency -> price
+                description: str  # Now required
+                category: str  # New field
+                tags: List[str] = Field(default_factory=list)  # New field
+                
+                model_config = {"extra": "forbid"}
+            
+            # Define a version-agnostic product type
+            ProductAny = Union[ProductV1, ProductV2]
+            
+            # Migration function to upgrade from v1 to v2
+            def migrate_product_v1_to_v2(product_v1: ProductV1) -> ProductV2:
+                """Migrate a v1 product to v2 format."""
+                # Extract base fields
+                base_data = product_v1.model_dump()
+                
+                # Remove v1-specific fields
+                base_data.pop("model_version")
+                price = base_data.pop("price")
+                
+                # Add v2-specific fields
+                return ProductV2(
+                    **base_data,
+                    price={"USD": price},  # Convert price to dictionary
+                    description=product_v1.description or "No description available",  # Ensure description is not None
+                    category="Uncategorized"  # Default category for migrated products
+                )
+            
+            print("\n📄 Versioned model diagrams:")
+            print("""
+ProductV1
+├── id: int
+├── name: str
+├── model_version: Literal['v1']  # <- Explicit version
+├── price: float                  # <- Scalar price
+└── description: Optional[str]    # <- Optional description
+
+ProductV2
+├── id: int
+├── name: str
+├── model_version: Literal['v2']  # <- Updated version
+├── price: Dict[str, float]       # <- Now a dictionary
+├── description: str              # <- Now required
+├── category: str                 # <- New field
+└── tags: List[str]               # <- New field""")
+            
+            print("\n🔍 Creating models of different versions:")
+            
+            # Create a v1 product
+            product_v1 = ProductV1(
+                id=1,
+                name="Basic Widget",
+                price=19.99
+            )
+            print(f"  ✓ ProductV1 created: {product_v1.model_dump_json()}")
+            
+            # Create a v2 product
+            product_v2 = ProductV2(
+                id=2,
+                name="Advanced Widget",
+                price={"USD": 29.99, "EUR": 26.99},
+                description="An advanced widget with multiple features",
+                category="Widgets",
+                tags=["advanced", "featured"]
+            )
+            print(f"  ✓ ProductV2 created: {product_v2.model_dump_json()}")
+            
+            print("\n🔍 Migrating from v1 to v2:")
+            
+            # Migrate a v1 product to v2
+            migrated_product = migrate_product_v1_to_v2(product_v1)
+            print(f"  ✓ Migrated product: {migrated_product.model_dump_json()}")
+            
+            print("\n📄 Implementation of the migration function:")
+            print("""
+def migrate_product_v1_to_v2(product_v1: ProductV1) -> ProductV2:
+    \"\"\"Migrate a v1 product to v2 format.\"\"\"
+    # Extract base fields
+    base_data = product_v1.model_dump()
+    
+    # Remove v1-specific fields
+    base_data.pop("model_version")
+    price = base_data.pop("price")
+    
+    # Add v2-specific fields
+    return ProductV2(
+        **base_data,
+        price={"USD": price},  # Convert price to dictionary
+        description=product_v1.description or "No description available",
+        category="Uncategorized"  # Default category for migrated products
+    )""")
+            
+            print("\n📝 API versioning strategy in FastAPI:")
+            print("""
+# In FastAPI, you can version your API routes like this:
+v1_router = APIRouter(prefix='/v1')
+v2_router = APIRouter(prefix='/v2')
+
+@v1_router.get("/products/{product_id}", response_model=ProductV1)
+async def get_product_v1(product_id: int):
+    # Return v1 product schema
+    ...
+
+@v2_router.get("/products/{product_id}", response_model=ProductV2)
+async def get_product_v2(product_id: int):
+    # Return v2 product schema
+    ...
+
+# Register both versions
+app.include_router(v1_router)
+app.include_router(v2_router)""")
+            
+            print("\n📝 Benefits of model versioning:")
+            print("  • Explicit version field makes schema clear")
+            print("  • Backward compatibility for clients")
+            print("  • Clear migration path between versions")
+            print("  • API versioning through route prefixes")
+            print("  • Gradual deprecation of old endpoints")
+        
+        except Exception as e:
+            print(f"\n❌ Error demonstrating model versioning: {e}")
+        
+        return {
+            "ProductV1": ProductV1,
+            "ProductV2": ProductV2,
+            "migrate_product_v1_to_v2": migrate_product_v1_to_v2
+        } if all(m in locals() for m in ["ProductV1", "ProductV2", "migrate_product_v1_to_v2"]) else None
+    
+    def demonstrate_fastapi_integration(self):
+        """
+        Demonstrate integration with FastAPI.
+        
+        Best practices shown:
+        - Request validation with Pydantic
+        - Response models
+        - Path and query parameters
+        - Dependency injection
+        """
+        print("\n" + "=" * 80)
+        print("🚀 FASTAPI INTEGRATION")
+        print("=" * 80)
+        print("✨ Connecting §6 (Pydantic) with §9 (FastAPI)")
+        
+        print("\n📄 FastAPI with Pydantic models:")
+        print("""
+from fastapi import FastAPI, Depends, HTTPException, Path, Query
+from typing import List, Optional, Annotated
+
+# Request model (Core Rule #1: Model Everything)
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    
+    # Prevent extra fields (security measure)
+    model_config = {"extra": "forbid"}
+
+# Response model (separate from request model)
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    is_active: bool = True
+    
+    # Configure for ORM mode if working with SQLAlchemy
+    model_config = {"from_attributes": True}
+
+# Error model for consistent responses
+class ErrorDetail(BaseModel):
+    loc: List[str]  # Location of the error
+    msg: str        # Error message
+    type: str       # Error type
+
+class ErrorResponse(BaseModel):
+    detail: List[ErrorDetail]
+
+# FastAPI app with Pydantic models
+app = FastAPI()
+
+@app.post(
+    "/users", 
+    response_model=UserResponse,  # Specify response model
+    status_code=201,              # Created status
+    responses={                   # Document error responses
+        400: {"model": ErrorResponse, "description": "Bad Request"},
+        409: {"model": ErrorResponse, "description": "User already exists"}
+    }
+)
+async def create_user(user: UserCreate):  # Automatic validation
+    # user is already validated by Pydantic
+    # ... create user in database ...
+    
+    # Return UserResponse that will be validated again
+    return UserResponse(id=1, username=user.username, email=user.email)
+
+# Path and query parameters with validation
+@app.get(
+    "/users/{user_id}",
+    response_model=UserResponse,
+    responses={404: {"model": ErrorResponse}}
+)
+async def get_user(
+    user_id: Annotated[int, Path(gt=0, description="The ID of the user")],
+    include_inactive: Annotated[bool, Query(default=False)] = False
+):
+    # Path and query parameters are validated
+    # ... fetch user from database ...
+    
+    return UserResponse(id=user_id, username="test", email="test@example.com")""")
+        
+        print("\n📝 Benefits of Pydantic+FastAPI integration:")
+        print("  • Automatic validation of request bodies")
+        print("  • Automatic validation of path and query parameters")
+        print("  • OpenAPI documentation generation")
+        print("  • Consistent error responses")
+        print("  • Clear separation of request and response models")
+        print("  • ORM integration with model_config={'from_attributes': True}")
+    
+    def demonstrate_database_integration(self):
+        """
+        Demonstrate integration with databases (SQLAlchemy).
+        
+        Best practices shown:
+        - Separate database models from API models
+        - Converting between ORM models and Pydantic models
+        - Data validation at system boundaries
+        """
+        print("\n" + "=" * 80)
+        print("🗄️ DATABASE INTEGRATION")
+        print("=" * 80)
+        print("✨ Connecting §6 (Pydantic) with §11 (Data Persistence)")
+        
+        print("\n📄 Database models with Pydantic:")
+        print("""
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from datetime import datetime
+
+# SQLAlchemy ORM model
+SQLBase = declarative_base()
+
+class UserDB(SQLBase):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+# Pydantic models for API layer
+class UserBase(BaseModel):
+    """Base fields shared by multiple schemas."""
+    username: str
+    email: EmailStr
+    is_active: bool = True
+
+class UserCreate(UserBase):
+    """Schema for creating a new user - includes password."""
+    password: str
+    
+    model_config = {"extra": "forbid"}  # Reject extra fields
+
+class UserUpdate(BaseModel):
+    """Schema for updating a user - all fields optional."""
+    username: str | None = None
+    email: EmailStr | None = None
+    is_active: bool | None = None
+    
+    model_config = {"extra": "forbid"}
+
+class UserInDB(UserBase):
+    """Internal model with hashed password - DO NOT expose in API."""
+    id: int
+    hashed_password: str
+    created_at: datetime
+    
+    # Configure for ORM mode
+    model_config = {"from_attributes": True}
+
+class UserResponse(UserBase):
+    """Public user representation - no sensitive data."""
+    id: int
+    created_at: datetime
+    
+    # Configure for ORM mode
+    model_config = {"from_attributes": True}""")
+        
+        print("\n📄 Service layer converting between ORM and Pydantic:")
+        print("""
+# User service layer
+class UserService:
+    def __init__(self, db_session):
+        self.db = db_session
+    
+    def create_user(self, user_create: UserCreate) -> UserInDB:
+        # Hash the password
+        hashed_password = self._hash_password(user_create.password)
+        
+        # Create SQLAlchemy model
+        db_user = UserDB(
+            username=user_create.username,
+            email=user_create.email,
+            hashed_password=hashed_password
+        )
+        
+        # Save to database
+        self.db.add(db_user)
+        self.db.commit()
+        self.db.refresh(db_user)
+        
+        # Convert to Pydantic model
+        return UserInDB.model_validate(db_user)
+    
+    def get_user(self, user_id: int) -> Optional[UserInDB]:
+        db_user = self.db.query(UserDB).filter(UserDB.id == user_id).first()
+        if not db_user:
+            return None
+        
+        # Convert to Pydantic model
+        return UserInDB.model_validate(db_user)""")
+        
+        print("\n📄 FastAPI endpoint using the service layer:")
+        print("""
+@app.post("/users", response_model=UserResponse)
+async def create_user(
+    user: UserCreate,
+    user_service: UserService = Depends(get_user_service)
+):
+    # Check if user exists
+    existing_user = user_service.get_by_email(user.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=409,
+            detail="Email already registered"
+        )
+    
+    # Create user - UserCreate already validated
+    db_user = user_service.create_user(user)
+    
+    # Return response - will be validated against UserResponse
+    return db_user  # Automatic conversion thanks to model_config""")
+        
+        print("\n📝 Benefits of this ORM+Pydantic approach:")
+        print("  • Clear separation of database models and API schemas")
+        print("  • Different schemas for different operations (create/update)")
+        print("  • Sensitive data (hashed_password) excluded from responses")
+        print("  • Automatic conversion between ORM and Pydantic models")
+        print("  • Validation at system boundaries (API input/output)")
+        print("  • Service layer for business logic")
+    
+    def run_demo(self):
+        """Run a comprehensive demonstration of all Pydantic concepts."""
+        print("\n" + "=" * 80)
+        print("🚀 DATA VALIDATION & CONFIGURATION DEMONSTRATION")
+        print(f"✨ Demonstrating §6 of the Python Development Best Practices")
+        print("=" * 80)
+        
+        print("\n📋 This demonstration will show you:")
+        print("  1. Basic Model Definition & Validation")
+        print("  2. Configuration Management with Settings")
+        print("  3. Nested Models & Relationships")
+        print("  4. Model Evolution & Versioning")
+        print("  5. FastAPI Integration")
+        print("  6. Database Integration")
+        
+        # Demonstrate each component
+        self.demonstrate_basic_models()
+        self.demonstrate_config_management()
+        self.demonstrate_nested_models()
+        self.demonstrate_model_versioning()
+        self.demonstrate_fastapi_integration()
+        self.demonstrate_database_integration()
+        
+        print("\n" + "=" * 80)
+        print("✅ DEMONSTRATION COMPLETE")
+        print("=" * 80)
+        print("\nCore principles demonstrated:")
+        for i, principle in enumerate(self.core_principles, 1):
+            print(f"  {i}. {principle.name}: {principle.description}")
+        
+        print("\nRecommended next steps:")
+        print("  • Explore fast_api_best_practice.py for deeper FastAPI integration")
+        print("  • Combine with environment.py for configuration management")
+        print("  • Apply these validation patterns in your own projects")
+    
+    def get_model_by_name(self, name: str) -> Optional[PydanticModel]:
+        """Find a model by name"""
+        for model in self.example_models:
+            if model.name == name:
+                return model
+        return None
+    
+    def generate_markdown(self) -> str:
+        """
+        Generate markdown documentation for the Data Validation section
+        of our best practices guide.
+        """
+        return f"""
+## Data Validation & Configuration — Pydantic v2
+
+Pydantic (≥ 2.0) is **mandatory** for all structured data exchanged inside the codebase—domain models, API schemas, event payloads, and runtime configuration.
+
+### Core Rules
+
+1. **Model everything**: Replace raw `dict`/`TypedDict` at module boundaries with `BaseModel` subclasses.
+2. **Settings pattern**: Centralize runtime/env config in a single `Settings` class that extends `BaseSettings` (reads from env, `.env`, `secrets/`).
+3. **No implicit mutation**: Models are immutable by default (`model_config = {{"frozen": True}}`) unless mutability is essential.
+4. **Validation first**: Construct models as the first step when ingesting external data (HTTP, CLI, DB rows) to reject bad input early.
+5. **Serialization**: Use `.model_dump()` / `.model_dump_json()` for outbound payloads—never manual `dict()` manipulation.
+
+**Model Versioning Tip**: include `model_version: Literal["v1"]` in schemas to evolve breaking changes (`v2`, `v3`, …) without downtime. Deprecate via **router.include_router(v1_router, prefix="/v1")**.
+
+### Minimal Example
+
+```python
+# app/models.py
+from pydantic import BaseModel, Field, field_validator
+
+class User(BaseModel):
+    id: int = Field(gt=0)
+    email: str
+    is_active: bool = True
+
+    @field_validator("email")
+    def email_must_have_at(cls, v: str) -> str:
+        if "@" not in v:
+            raise ValueError("invalid email")
+        return v
+
+# app/config.py
+from functools import lru_cache
+from pydantic import BaseSettings, Field
+
+class Settings(BaseSettings):
+    debug: bool = Field(False, env="DEBUG")
+    database_url: str = Field(..., env="DATABASE_URL")
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+```
+
+### Database Integration Pattern
+
+```python
+# SQLAlchemy ORM model
+class UserDB(SQLBase):
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+# Pydantic models for API layer
+class UserBase(BaseModel):
+    username: str
+    email: str
+    is_active: bool = True
+
+class UserCreate(UserBase):
+    password: str  # Clear-text only for request
+    
+    model_config = {{"extra": "forbid"}}  # Reject extra fields
+
+class UserResponse(UserBase):
+    id: int
+    
+    # Configure model to work with SQLAlchemy
+    model_config = {{"from_attributes": True}}
+```
+
+### FastAPI Integration
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+from app.models import UserCreate, UserResponse
+
+app = FastAPI()
+
+@app.post("/users", response_model=UserResponse)
+async def create_user(user: UserCreate):
+    # user is already validated by Pydantic
+    # Just focus on business logic
+    db_user = create_user_in_db(user)  
+    return db_user  # Automatically converted to UserResponse
+```
+
+> **Remember**: if a structure could be represented by a Pydantic model, it **must** be—unless explicitly instructed otherwise.
+"""
+    
+    def __str__(self) -> str:
+        """String representation of data validation standards"""
+        return f"{self.name}: Using Pydantic {self.min_version}+ for data validation and configuration"
+
+
+# Run the demo if this file is executed directly
+if __name__ == "__main__":
+    validation = DataValidationAndConfiguration()
+    validation.run_demo()

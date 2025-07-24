@@ -1,8 +1,8 @@
-## 10. Background Tasks, Messaging & Concurrency
+## 11. Background Tasks, Messaging & Concurrency
 
 Modern applications often require handling operations outside the main request-response cycle. This section covers strategies for managing concurrency, offloading work to background tasks, and using messaging systems for robust, scalable event-driven architectures.
 
-### 10.1 Foundational Concurrency Models in Python
+### 11.1 Foundational Concurrency Models in Python
 
 Understanding Python's concurrency approaches is key to choosing the right execution model.
 
@@ -20,7 +20,7 @@ Understanding Python's concurrency approaches is key to choosing the right execu
     *   For quick, non-blocking work (<20ms): Keep it synchronous within the route for simplicity.
     *   For I/O-bound work that might take up to ~200ms (e.g., a single external HTTP call): Use `async def` for the route and `await` the I/O operation.
 
-### 10.2 Task Queues with Celery
+### 11.2 Task Queues with Celery
 
 [Celery](https://docs.celeryq.dev/en/stable/) is the **mandatory tool** for offloading tasks that can block for >200ms, involve heavy CPU work, or need to be processed independently of the request lifecycle.
 
@@ -31,7 +31,7 @@ Understanding Python's concurrency approaches is key to choosing the right execu
 *   Operations requiring retries or scheduled execution.
 *   Decoupling resource-intensive work to keep API response times low (return `202 Accepted` and process asynchronously).
 
-#### 10.2.1 Celery Configuration & Best Practices
+#### 11.2.1 Celery Configuration & Best Practices
 
 1.  **Broker Selection:**
     *   Local/Development: [Redis](https://redis.io/) 7+ is suitable.
@@ -49,7 +49,7 @@ Understanding Python's concurrency approaches is key to choosing the right execu
 7.  **Instrumentation & Monitoring:** Emit task events (success, failure, retry) to [Prometheus](https://prometheus.io/) (e.g., using [celery-exporter](https://github.com/oval كيναծoval/celery-exporter)) or integrate with distributed tracing systems like [Grafana Tempo](https://grafana.com/oss/tempo/) or [Jaeger](https://www.jaegertracing.io/).
 8.  **Serialization:** Use `json` as the default serializer for broad compatibility. Consider `pickle` only if complex Python objects must be passed and security implications are understood.
 
-#### 10.2.2 Celery Minimal Example
+#### 11.2.2 Celery Minimal Example
 
 ```python
 # project/tasks.py
@@ -102,11 +102,11 @@ def process_file(self, filepath: str):
 # celery -A project.tasks beat -l INFO
 ```
 
-#### 10.2.3 Docker Compose for Celery
+#### 11.2.3 Docker Compose for Celery
 
 > **Tip:** Create a `compose.celery.yml` (or similar) to define `worker` and `beat` (if using scheduled tasks) services. Ensure environment consistency by mounting your `uv.lock` file or using the same base Docker image and dependency installation process as your application service.
 
-### 10.3 Messaging & Streaming Systems
+### 11.3 Messaging & Streaming Systems
 
 For high-throughput event ingestion, durable messaging, or scenarios requiring multiple asynchronous consumers for the same event (fan-out), use dedicated messaging/streaming platforms.
 
@@ -131,7 +131,7 @@ For high-throughput event ingestion, durable messaging, or scenarios requiring m
 *   **Consumer Logic Location:** Organize consumer/subscriber code logically, for example, within an `/app/subscribers/` or `/app/consumers/` directory.
 *   **Dead-Letter Queues (DLQs):** Configure DLQs to handle messages that cannot be processed successfully after multiple retries, allowing for later inspection and manual intervention.
 
-### 10.4 Testing Asynchronous Systems
+### 11.4 Testing Asynchronous Systems
 
 Testing background tasks and message-driven components requires specific strategies:
 
@@ -143,7 +143,7 @@ Testing background tasks and message-driven components requires specific strateg
 *   **Timeout Validation:** Use tools like [`pytest-timeout`](https://pypi.org/project/pytest-timeout/) to ensure tasks complete within their declared `soft_time_limit` or `time_limit`.
 *   **Mocking External Services:** Thoroughly mock external dependencies (APIs, databases) called by tasks or consumers to ensure isolated and deterministic tests.
 
-### 10.5 Documentation Requirements for Asynchronous Components
+### 11.5 Documentation Requirements for Asynchronous Components
 
 Maintaining clear documentation for background tasks, queues, and message topics is crucial for system understanding, maintainability, and collaboration (including with AI agents).
 

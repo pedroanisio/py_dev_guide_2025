@@ -1,8 +1,8 @@
-## 8. Containerization & Docker Usage
+## 9. Containerization & Docker Usage
 
 Containerization using [Docker](https://www.docker.com/) is essential for creating consistent, reproducible, and isolated development, testing, and production environments. This section covers best practices for Dockerfiles, structuring Docker Compose files, common recipes, local development workflows, and deployment strategies.
 
-### 8.1 Dockerfile Best Practices
+### 9.1 Dockerfile Best Practices
 
 Optimized and secure Dockerfiles are crucial for efficient builds and runtime performance.
 
@@ -21,11 +21,11 @@ Optimized and secure Dockerfiles are crucial for efficient builds and runtime pe
         trivy fs --exit-code 1 --severity CRITICAL,HIGH .
     ```
 
-### 8.2 Docker Compose Fundamentals
+### 9.2 Docker Compose Fundamentals
 
 [Docker Compose](https://docs.docker.com/compose/) simplifies the definition and management of multi-container applications.
 
-#### 8.2.1 Layering Configuration (`compose.yml` + Overrides)
+#### 9.2.1 Layering Configuration (`compose.yml` + Overrides)
 
 We use a layered approach for Compose files:
 
@@ -38,7 +38,7 @@ We use a layered approach for Compose files:
 **Key Principle:** Start services using multiple `-f` flags, with later files overriding earlier ones.
 `docker compose -f compose.yml -f compose-dev.yml up`
 
-#### 8.2.2 Mandatory Rules
+#### 9.2.2 Mandatory Rules
 
 1.  **No `version:` Key:** **Do *not* declare a top-level `version:` key** in any Compose file. Compose V2 (the standard) infers the schema automatically.
 2.  **Use Override Files:** Development-specific configurations (source code mounts, hot-reloading commands, debuggers, helper services like `mailhog`) **must** go into override files (e.g., `compose-dev.yml` or `compose.override.yml`), not the base `compose.yml`.
@@ -46,15 +46,15 @@ We use a layered approach for Compose files:
 
 > **Rule Reminder:** Add databases, message brokers, or mock services needed *only* for local development to `compose-dev.yml` or similar override files. Keep `compose.yml` focused on the core application services. **Never add the `version` property.**
 
-#### 8.2.3 Modular Recipe Concept
+#### 9.2.3 Modular Recipe Concept
 
 The following section provides a library of modular `compose.*.yml` snippets. These are designed to be layered onto a base `compose.yml` using the `-f` flag to assemble the specific stack needed for development or testing.
 
-### 8.3 Modular Compose Recipe Library
+### 9.3 Modular Compose Recipe Library
 
 Combine these snippets with a base `compose.yml` (which might only define networks and volumes) to build your environment.
 
-#### 8.3.1 Database + Admin (`compose.db.yml`)
+#### 9.3.1 Database + Admin (`compose.db.yml`)
 
 ```yaml
 # Provides PostgreSQL + pgAdmin
@@ -90,7 +90,7 @@ volumes:
   postgres_data: {}
 ```
 
-#### 8.3.2 Cache (`compose.cache.yml`)
+#### 9.3.2 Cache (`compose.cache.yml`)
 
 ```yaml
 # Provides Redis
@@ -102,7 +102,7 @@ services:
     restart: unless-stopped
 ```
 
-#### 8.3.3 API Service (`compose.api.yml`)
+#### 9.3.3 API Service (`compose.api.yml`)
 
 ```yaml
 # Defines the main Python API service
@@ -133,7 +133,7 @@ services:
     restart: unless-stopped
 ```
 
-#### 8.3.4 Front-End (`compose.front.yml`)
+#### 9.3.4 Front-End (`compose.front.yml`)
 
 ```yaml
 # Defines a Node.js/Vite frontend service
@@ -159,7 +159,7 @@ services:
     restart: unless-stopped
 ```
 
-#### 8.3.5 Routing Proxy (`compose.proxy.yml`)
+#### 9.3.5 Routing Proxy (`compose.proxy.yml`)
 
 ```yaml
 # Provides Traefik as a reverse proxy and API gateway
@@ -187,7 +187,7 @@ services:
 #   traefik_certs: {}
 ```
 
-#### 8.3.6 Static Assets Server (`compose.nginx.yml`)
+#### 9.3.6 Static Assets Server (`compose.nginx.yml`)
 
 ```yaml
 # Provides Nginx for serving static files
@@ -204,7 +204,7 @@ services:
     restart: unless-stopped
 ```
 
-#### 8.3.7 Observability Stack (`compose.observability.yml`)
+#### 9.3.7 Observability Stack (`compose.observability.yml`)
 
 ```yaml
 # Provides Prometheus + Grafana
@@ -249,7 +249,7 @@ secrets:
 
 > **Recipe Tip:** Keep the base `compose.yml` minimal (perhaps just defining networks and volumes). Layer these recipe files using `-f` as needed for different development or testing scenarios. Remember the mandatory rule: **never include a `version:` key**.
 
-### 8.4 Assembling Development Stacks
+### 9.4 Assembling Development Stacks
 
 Combine the base file and recipe files using `docker compose -f ...` to create your desired local environment.
 
@@ -280,7 +280,7 @@ docker compose \
   up --build -d
 ```
 
-#### 8.4.1 Development Overrides (`compose-dev.yml`)
+#### 9.4.1 Development Overrides (`compose-dev.yml`)
 
 Use a `compose-dev.yml` (or `compose.override.yml`) to apply development-specific settings like volume mounts for hot-reloading and different commands, without modifying the core service definitions.
 
@@ -316,7 +316,7 @@ services:
 docker compose -f compose.yml -f compose.api.yml -f compose-dev.yml up --build
 ```
 
-### 8.5 Local Development Workflow & Debugging
+### 9.5 Local Development Workflow & Debugging
 
 Common Docker commands for managing your development stack:
 
@@ -342,13 +342,13 @@ Common Docker commands for managing your development stack:
 
 > **Shortcut Tip:** Add `alias dcd='docker compose down -v'` (or similar) to your shell profile (`.bashrc`, `.zshrc`) for quickly resetting your environment during development iterations.
 
-### 8.6 Deployment Strategies & Recipes
+### 9.6 Deployment Strategies & Recipes
 
 Deploying containerized applications involves packaging them into immutable images and running them on target infrastructure.
 
 > **Assumption:** These recipes assume you have built images with explicit, unique tags (e.g., `myapp-api:1.2.3`, `myapp-frontend:a7b3cde`) and pushed them to a container registry (e.g., GHCR, Docker Hub, GCR, ECR, DigitalOcean Registry). Adjust resource names and registry paths to match your project.
 
-#### 8.6.1 Stand-Alone VPS (e.g., DigitalOcean Droplet + Cloudflare DNS)
+#### 9.6.1 Stand-Alone VPS (e.g., DigitalOcean Droplet + Cloudflare DNS)
 
 Suitable for simpler applications or initial deployments.
 
@@ -396,7 +396,7 @@ docker compose \
 
 ---
 
-#### 8.6.2 Serverless Container Platform (e.g., Google Cloud Run)
+#### 9.6.2 Serverless Container Platform (e.g., Google Cloud Run)
 
 Ideal for stateless applications needing auto-scaling and managed infrastructure (including TLS).
 
@@ -426,7 +426,7 @@ Ideal for stateless applications needing auto-scaling and managed infrastructure
 
 ---
 
-#### 8.6.3 Managed Kubernetes (e.g., Google Kubernetes Engine - GKE)
+#### 9.6.3 Managed Kubernetes (e.g., Google Kubernetes Engine - GKE)
 
 Suitable for complex, multi-service applications requiring fine-grained control over networking, scaling, and orchestration.
 
@@ -539,7 +539,7 @@ spec:
 
 ---
 
-#### 8.6.4 Private-Only Stack (e.g., Corporate VPC without Internet Access)
+#### 9.6.4 Private-Only Stack (e.g., Corporate VPC without Internet Access)
 
 Requires careful network configuration, internal DNS, and potentially a private container registry.
 

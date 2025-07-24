@@ -1,4 +1,4 @@
-## 6. Data Validation & Configuration — **Pydantic v2**
+## 7. Data Validation & Configuration
 
 [Pydantic](https://docs.pydantic.dev/latest/) (v2, ensure version ≥ 2.0, preferably latest stable) is **mandatory** for defining and validating all structured data within the codebase. This includes domain models, API request/response schemas, event payloads, and runtime configuration.
 
@@ -6,7 +6,7 @@
 > - [Section 9: API Development with FastAPI](api.md) leverages Pydantic extensively for request/response modeling
 > - [Section 11: Data Persistence & Storage](persistence.md) integrates with Pydantic models for data validation and serialization
 
-### 6.1 Core Principles & Rules
+### 7.1 Core Principles & Rules
 
 1.  **Model Everything:** Replace raw `dict` or `typing.TypedDict` at function/method boundaries and for internal state with Pydantic [`BaseModel`](https://docs.pydantic.dev/latest/api/base_model/) subclasses. This provides runtime validation and static analysis benefits.
 2.  **Configuration via Settings:** Centralize runtime configuration (environment variables, `.env` files, secrets) using a single `Settings` class inheriting from Pydantic's [`BaseSettings`](https://docs.pydantic.dev/latest/usage/settings/).
@@ -16,7 +16,7 @@
 
 **Model Versioning Tip:** For evolving API schemas non-destructively, consider including a version field (e.g., `model_version: Literal["v1"] = "v1"`). When introducing breaking changes (`v2`, `v3`, ...), create new model versions. In frameworks like FastAPI, manage different API versions using separate routers (e.g., `router.include_router(v1_router, prefix="/v1")`, `router.include_router(v2_router, prefix="/v2")`).
 
-### 6.2 Recommended Layout (`src/` structure)
+### 7.2 Recommended Layout (`src/` structure)
 
 ```text
 <root>/
@@ -29,7 +29,7 @@
 ```
 *(Adjust based on the chosen project structure from Section 4.3)*
 
-### 6.3 Minimal Example
+### 7.3 Minimal Example
 
 ```python
 # src/<app_name>/models.py
@@ -87,7 +87,7 @@ def get_settings() -> Settings:
 # print(settings.database_url)
 ```
 
-### 6.4 Tooling & CI Enforcement
+### 7.4 Tooling & CI Enforcement
 
 Ensure correct Pydantic usage and type safety using static analysis tools configured in `pyproject.toml`.
 
@@ -96,7 +96,7 @@ Ensure correct Pydantic usage and type safety using static analysis tools config
 | **mypy**     | ```toml\n[tool.mypy]\nplugins = ["pydantic.mypy"]\n# ... other mypy settings ...\n``` | Enables static type checking correctness. The [Pydantic Mypy plugin](https://docs.pydantic.dev/latest/integrations/mypy/) is crucial for validating model types, validators, and generic models. |
 | **ruff**     | *(Rule sets like `B` (flake8-bugbear), `ARG` (flake8-unused-arguments), `PTH` (flake8-use-pathlib) are generally recommended)* | Lints for general Python best practices, which often overlap with good Pydantic usage (e.g., flagging unused fields, incorrect exception handling). Configure specific Pydantic-related checks if available/needed. |
 
-### 6.5 FastAPI Integration Quick Reference
+### 7.5 FastAPI Integration Quick Reference
 
 [FastAPI](https://fastapi.tiangolo.com/) leverages Pydantic extensively for request/response validation and serialization. For a more comprehensive guide on FastAPI, see [Section 9: API Development — FastAPI](api.md).
 
@@ -164,9 +164,9 @@ async def list_users(
     return [UserResponse(id=1, email="user@example.com", is_active=True)]
 ```
 
-### 6.6 Advanced Pydantic Patterns
+### 7.6 Advanced Pydantic Patterns
 
-#### 6.6.1 Nested Models and Relationships
+#### 7.6.1 Nested Models and Relationships
 
 ```python
 from typing import List, Optional
@@ -210,7 +210,7 @@ class User(BaseModel):
         return self
 ```
 
-#### 6.6.2 Handling Database Models and API DTOs
+#### 7.6.2 Handling Database Models and API DTOs
 
 ```python
 from sqlalchemy import Column, Integer, String, Boolean
@@ -260,7 +260,7 @@ class UserResponse(UserBase):
 
 > **🔗 Note:** For comprehensive database integration patterns, refer to [Section 11: Data Persistence & Storage](persistence.md), which covers SQLAlchemy ORM, driver selection, and integration patterns with Pydantic models.
 
-#### 6.6.3 Error Handling for FastAPI
+#### 7.6.3 Error Handling for FastAPI
 
 ```python
 from fastapi import FastAPI, HTTPException, Request

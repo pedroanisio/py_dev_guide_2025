@@ -1,8 +1,8 @@
-## 11. Data Persistence & Storage Choices
+## 12. Data Persistence & Storage Choices
 
 Choosing the right data persistence strategy and technology is fundamental to building scalable and maintainable applications. This section outlines core principles, recommended tools, operational practices, common patterns, and examples.
 
-### 11.1 Core Principles
+### 12.1 Core Principles
 
 These principles guide all persistence-related decisions:
 
@@ -11,7 +11,7 @@ These principles guide all persistence-related decisions:
 3.  **Schema-First & Version Controlled:** Maintain all schema definitions (SQL DDL, OpenAPI-backed event schemas, GraphQL SDL, NoSQL validation rules) in Git. Apply schema changes automatically via CI/CD using robust migration tools.
 4.  **Observability & Backups:** Comprehensive monitoring (metrics, logs) and automated, regularly tested backup/restore procedures are non-negotiable for all datastores, including non-production environments.
 
-### 11.2 Technology Choices: Database Matrix
+### 12.2 Technology Choices: Database Matrix
 
 This matrix provides a quick reference for common database options. Evaluate against specific project needs.
 
@@ -25,15 +25,15 @@ This matrix provides a quick reference for common database options. Evaluate aga
 | **Chroma 0.4+**        | Lightweight local vector database (in-process or server mode) for semantic search and RAG applications. | [`chromadb`](https://docs.trychroma.com/usage-guide)           | Schema managed implicitly by collection creation. | `ghcr.io/chroma-core/chroma:0.4.x`              |
 | **Qdrant 1.9+**        | Production-grade vector search, HNSW/Scalar Quantization, advanced filtering, high-cardinality metadata. | [`qdrant-client[async]`](https://github.com/qdrant/qdrant_client) | Collection schema managed via API/JSON.         | `qdrant/qdrant:v1.9.x`                        |
 
-#### 11.2.1 Tip: Combining Relational and Vector Search
+#### 12.2.1 Tip: Combining Relational and Vector Search
 
 For projects requiring both strong relational capabilities and vector similarity search on the same dataset, consider PostgreSQL with the [pgvector](https://github.com/pgvector/pgvector) extension. It allows leveraging Postgres's mature ecosystem while adding efficient vector operations.
 
-### 11.3 Implementation & Operational Practices
+### 12.3 Implementation & Operational Practices
 
 Effective data management involves robust operational procedures.
 
-#### 11.3.1 Schema Management & Migrations
+#### 12.3.1 Schema Management & Migrations
 
 *   **Tooling:** Use tools like [Alembic](https://alembic.sqlalchemy.org/) for SQL databases. Auto-generate migration scripts but **always review the generated SQL diff** before merging.
 *   **CI/CD Integration:** The CI pipeline must validate migrations (e.g., dry-run) before deployment.
@@ -58,28 +58,28 @@ Effective data management involves robust operational procedures.
         # test -s migration_diff.sql
     ```
 
-#### 11.3.2 Connection Management
+#### 12.3.2 Connection Management
 
 *   **Pooling:** Essential for performance. Use driver-provided pools (e.g., `asyncpg.create_pool()`) or external poolers ([PgBouncer](https://www.pgbouncer.org/) for Postgres). Size appropriately based on workload and resources (e.g., `min(32, (CPU_CORES * 2) + EFFECTIVE_SPINDLE_COUNT)` as a starting point for Postgres).
 
-#### 11.3.3 Backup & Recovery
+#### 12.3.3 Backup & Recovery
 
 *   **Automation:** Implement automated nightly backups (e.g., `pg_dump`, WAL archiving, cloud provider snapshots, `neo4j-admin dump`).
 *   **Testing:** **Regularly test your restore procedures** to verify data integrity and meet Recovery Time Objectives (RTO).
 
-#### 11.3.4 Monitoring & Alerting
+#### 12.3.4 Monitoring & Alerting
 
 *   **Metrics:** Export database metrics using specific exporters (e.g., [`pg_exporter`](https://github.com/prometheus-community/postgres_exporter), `mongodb_exporter`, `qdrant_exporter`) to a monitoring system ([Prometheus](https://prometheus.io/)).
 *   **SLOs & Alerts:** Define Service Level Objectives (SLOs) for key metrics (p95 latency, error rates, availability) and configure alerts for breaches.
 *   **Logging:** Monitor slow query logs and database error logs.
 
-#### 11.3.5 Security Considerations
+#### 12.3.5 Security Considerations
 
 *   **Permissions:** Use least-privileged database accounts.
 *   **Secrets Management:** Rotate credentials regularly using tools like [HashiCorp Vault](https://www.vaultproject.io/) or [Doppler](https://doppler.com/).
 *   **Encryption:** Enforce TLS/SSL for data in transit. Consider encryption at rest for sensitive data.
 
-### 11.4 Architectural Patterns (Microservices)
+### 12.4 Architectural Patterns (Microservices)
 
 Common patterns for data management in a microservices architecture:
 
@@ -90,7 +90,7 @@ Common patterns for data management in a microservices architecture:
 | **Polyglot Persistence**            | A single service has diverse data needs (e.g., relational, graph, and full-text search). | Use the most appropriate database for each data type/access pattern within the service boundary. Often, one DB is canonical for writes, with data asynchronously replicated to others. |
 | **Shared Read Replica (Cautiously)** | Complex, cross-domain analytical reporting where API aggregation is too slow/complex. | Expose a read-only replica of one or more service databases to a dedicated analytics service. **Strictly for reads.** Manage carefully to avoid tight coupling. |
 
-### 11.5 Development Environment Examples (Docker Compose)
+### 12.5 Development Environment Examples (Docker Compose)
 
 These snippets illustrate setting up databases for local development.
 
@@ -153,7 +153,7 @@ volumes:
   grafana_data: {}
 ```
 
-### 11.6 Documentation Requirements
+### 12.6 Documentation Requirements
 
 > **Rule:** For every primary datastore (database, collection, graph, index), document its purpose, schema definition location, backup strategy, and data retention policy in `m2m/README.md` or a dedicated `docs/data/<datastore_name>.md` file. This ensures critical operational knowledge is captured and accessible.
 

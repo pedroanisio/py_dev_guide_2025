@@ -39,5 +39,4 @@
 * **PY-STYLE-PEP8**  – Follow PEP 8 style.
 * **PY-TYPING-PEP484**  – Adopt PEP 484 typing.
 * **PY-VENV**  – Use virtual environments (`uv`).  
----  
-<a id="0-security-practices"></a>
+---

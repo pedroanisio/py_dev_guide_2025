@@ -1,5 +1,5 @@
-## 12. AI & Data‑Science Practices  
-### 12.1 Model Serving & Local LLMs  
+## 13. AI & Data Science Practices  
+### 13.1 Model Serving & Local LLMs  
 | Tool                                        | Use Case                                                                                          | Notes                                                                             | Version |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ------- |
 | **Ollama**                                  | Quickly spin up local LLMs (Mistral, Llama 3) for prototypes, private inference, or edge devices. | Mount `~/.ollama` as a volume in Docker; bind GPU with `--gpus all` if available. | 0.1.27+ |
@@ -33,7 +33,7 @@ EXPOSE 11434
 ENTRYPOINT ["ollama", "serve", "--workers=4", "--config=/etc/ollama/models/llama3-config.yaml"]
 ```
 
-### 12.2 NLP Stack (Python)  
+### 13.2 NLP Stack (Python)  
 | Layer        | Preferred Lib                                      | Alternatives                              | Example                                                                 | Version |
 | ------------ | -------------------------------------------------- | ----------------------------------------- | ----------------------------------------------------------------------- | ------- |
 | Tokenization | `tokenizers` (HF)                                  | `spaCy` tokenizers                        | `from tokenizers import Tokenizer; t = Tokenizer.from_pretrained("gpt2")` | 0.15.0+ |
@@ -83,7 +83,7 @@ class VectorService:
                 for hit in results]
 ```
 
-### 12.3 GPU vs CPU Guidelines  
+### 13.3 GPU vs CPU Guidelines  
 | Case                        | Hardware                | Settings                                                           | Optimization                                                                 |
 | --------------------------- | ----------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
 | Training small (<1B) models | Consumer GPU (RTX 4090) | `torch.set_float32_matmul_precision("high")`, `bf16` if supported. | DeepSpeed ZeRO Stage 2, gradient accumulation                              |
@@ -121,7 +121,7 @@ spec:
       value: "0.85"
 ```
 
-### 12.4 Data Pipelines  
+### 13.4 Data Pipelines  
 | Stage          | Tooling                        | Comment                                                         | Example                                                                 | Version |
 | -------------- | ------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------- | ------- |
 | Orchestration  | **Apache Airflow**            | DAGs stored in `pipelines/` folder; deploy via Docker Operator. | `from airflow import DAG; from airflow.operators.python import PythonOperator` | 2.9.0+ |
@@ -194,7 +194,7 @@ extract_task = PythonOperator(
 # Define additional tasks for transform, load, train, etc.
 ```
 
-### 12.5 Experiment Tracking & Reproducibility  
+### 13.5 Experiment Tracking & Reproducibility  
 | Aspect | Tool | Mandatory Config | Integration | Version |
 | ------------------------------------------------------ | | 💾 Artifacts |
 **MLflow** | Track params + metrics; log models as `mlflow.pyfunc`. | | 📊
@@ -316,7 +316,7 @@ async def get_recent_runs(experiment_name: str, limit: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 ```
 
-### 12.6 Ollama Quick‑Serve  
+### 13.6 Ollama Quick‑Serve  
 ```bash
 # Pull model & run REST service
 ollama pull mistral:7b-instruct
@@ -328,7 +328,7 @@ import requests, json
 resp = requests.post("http://localhost:11434/api/generate", json={"prompt": "Hello"})
 print(json.loads(resp.text)["response"])
 ```  
-### 12.7 MLflow Tracking Example  
+### 13.7 MLflow Tracking Example  
 ```python
 import mlflow, sklearn
 with mlflow.start_run(run_name="clf_v1"):
@@ -336,7 +336,7 @@ model.fit(X_train, y_train)
 mlflow.sklearn.log_model(model, "model")
 mlflow.log_metric("accuracy", acc)
 ```  
-### 12.8 Model Deployment & Serving
+### 13.8 Model Deployment & Serving
 
 | Component | Recommended Approach | Alternative | Key Metrics | Version |
 |-----------|---------------------|-------------|------------|---------|

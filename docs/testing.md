@@ -1,4 +1,4 @@
-## 5. Testing
+## 6. Testing
 
 *   **Write Tests:** Use **[`pytest`](https://docs.pytest.org/)** as the primary framework due to its rich fixtures, parametrization, and extensive plugin ecosystem.
 *   **Test Types:** Include unit, integration, and end-to-end (E2E) tests as appropriate for comprehensive validation.
@@ -37,7 +37,7 @@ def test_external_api_call():
     assert len(responses.calls) == 1 # Verify the call was made
 ```
 
-### 5.1 Test-Driven Development (TDD) — 🔴 RED → 🟢 GREEN → ♻️ REFACTOR
+### 6.1 Test-Driven Development (TDD) — 🔴 RED → 🟢 GREEN → ♻️ REFACTOR
 
 Follow this iterative cycle for every new feature or bug fix unless explicitly instructed otherwise. This ensures tests drive implementation and prevents regressions.
 
@@ -52,7 +52,7 @@ Follow this iterative cycle for every new feature or bug fix unless explicitly i
 
 Embed this TDD cycle into your daily workflow (e.g., using IDE test runners, file watchers triggering `pytest`, or pre-commit hooks) to build robust and maintainable code.
 
-### 5.2 Running Pytest & Enforcing Coverage
+### 6.2 Running Pytest & Enforcing Coverage
 
 Use [`pytest-cov`](https://pytest-cov.readthedocs.io/) to measure test coverage.
 

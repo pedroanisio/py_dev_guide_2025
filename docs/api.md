@@ -1,8 +1,9 @@
-## 9. API Development — FastAPI **(Mandatory)**  🚀  
+## 10. API Development — FastAPI **(Mandatory)**  🚀  
 
 > **🔗 Cross-References:**
-> - For detailed guidance on Pydantic models for API validation, see [Section 6: Data Validation & Configuration](validation.md)
-> - For database integration with your API, see [Section 11: Data Persistence & Storage](persistence.md)
+> - For detailed guidance on Pydantic models for API validation, see [Section 7: Data Validation & Configuration](validation.md)
+> - For database integration with your API, see [Section 12: Data Persistence & Storage](persistence.md)
+> - For standard project structure, see [Section 4.3: Recommended Project Structures](design.md#43-recommended-project-structures)
 
 ### Why FastAPI?  
 * First‑class **async** support (built on Starlette) → **handles concurrent requests efficiently for I/O-bound operations** (DB queries, HTTP calls)
